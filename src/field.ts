@@ -1,4 +1,4 @@
-import { Container, Point, Texture } from 'pixi.js';
+import { Container, Graphics, Point, Texture } from 'pixi.js';
 import { Tile } from './tile';
 import { randi } from './utils';
 import { ClickData } from './input';
@@ -74,6 +74,19 @@ export class Field {
         // TODO: think about padding
         this.container.position.x += padding;
         this.container.position.y += padding;
+
+        const clipMask = new Graphics();
+        const topPadding = 10;
+        clipMask.rect(
+            0,
+            -topPadding,
+            this.fieldWidth,
+            this.fieldHeight + topPadding
+        );
+        clipMask.fill(0xffffff);
+        clipMask.renderable = true;
+        this.container.addChild(clipMask);
+        this.container.mask = clipMask;
 
         // Prepare tile descriptors
         this._tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
