@@ -147,8 +147,41 @@ export class Field {
             zIndex: 0,
         });
 
+        this._tiles.set(tile.id, tile);
         this.container.addChild(tile.container);
         return tile;
+    }
+
+    shuffle() {
+        for (const verticalLine of this._grid) {
+            for (const cell of verticalLine) {
+                cell.tile = null;
+            }
+        }
+
+        const tiles = [...this._tiles.values()];
+
+        let currentIndex = tiles.length - 1;
+        while (currentIndex >= 0) {
+            const randomIndex = Math.floor(Math.random() * currentIndex);
+            const randomTile = tiles[randomIndex];
+            const currentTile = tiles[currentIndex];
+
+            tiles[currentIndex] = randomTile;
+            tiles[randomIndex] = currentTile;
+
+            currentIndex--;
+        }
+
+        tiles.forEach((tile, index) => {
+            const col = index % this.sizeX;
+            const row = Math.floor(index / this.sizeX);
+            const cell = this._grid[col][row];
+
+            tile.container.position.copyFrom(cell.position);
+            tile.container.zIndex = this.sizeY - row;
+            cell.tile = tile;
+        });
     }
 
     update(time: TimeSystem) {
