@@ -34,7 +34,7 @@ export class Game {
         this.field = new Field(options.field);
         this.options = options;
 
-        pixi.stage.addChild(this.field);
+        pixi.stage.addChild(this.field.container);
     }
 
     private async _loadAssets() {

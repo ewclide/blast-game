@@ -1,9 +1,9 @@
-import { Container, Point } from 'pixi.js';
+import { Container, Point, Texture } from 'pixi.js';
 import { Tile } from './tile';
 import { randi } from './utils';
 import { ClickData } from './input';
 import { TimeSystem } from './time';
-import { InternalAssets } from './game';
+import { InternalAssets, TileType } from './game';
 
 export interface FieldOptions {
     width: number;
@@ -28,14 +28,21 @@ interface Cell {
     neighbors: number[];
 }
 
+interface TileTypeDescriptor {
+    type: TileType;
+    texture: Texture;
+}
+
 const TILE_ACCEL = 3000;
 const encodeCoords = (row: number, col: number) => (row << 16) | col;
 const decodeCoords = (mask: number) => [mask >> 16, mask & 0xffff];
 
-export class Field extends Container implements FieldOptions {
+export class Field {
     private _tiles = new Map<number, Tile>();
     private _grid: Cell[][] = [];
     private _cellSize = new Point();
+    private _blockTapping: boolean = false;
+    private _tileTypes: TileTypeDescriptor[] = [];
     private _tilesToFall = new Set<{
         tile: Tile;
         dst: Cell;
@@ -47,10 +54,10 @@ export class Field extends Container implements FieldOptions {
     readonly sizeX: number;
     readonly sizeY: number;
     readonly minBatchSize: number;
+    readonly container: Container;
 
     constructor(options: FieldOptions) {
-        super();
-
+        this.container = new Container();
         this.fieldWidth = options.width;
         this.fieldHeight = options.height;
         this.padding = options.padding;
@@ -61,9 +68,18 @@ export class Field extends Container implements FieldOptions {
 
     create(assets: InternalAssets) {
         const { sizeY, sizeX, padding } = this;
-        const cellWidth = (this.fieldWidth - padding * 2) / sizeX;
-        const cellHeight = (this.fieldHeight - padding * 2) / sizeY;
+        const cellWidth = this.fieldWidth / sizeX;
+        const cellHeight = this.fieldHeight / sizeY;
         this._cellSize.set(cellWidth, cellHeight);
+        // TODO: think about padding
+        this.container.position.x += padding;
+        this.container.position.y += padding;
+
+        // Prepare tile descriptors
+        this._tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
+            type,
+            texture,
+        }));
 
         const encodeWithBorderCheck = (row: number, col: number) => {
             // Check field restrictions additionally
@@ -75,11 +91,7 @@ export class Field extends Container implements FieldOptions {
         // Create grid: by columns
         this._grid = Array.from({ length: sizeX }, (_, col) => {
             return Array.from({ length: sizeY }, (_, row) => {
-                const position = new Point(
-                    padding + col * cellWidth,
-                    padding + row * cellHeight
-                );
-
+                const position = new Point(col * cellWidth, row * cellHeight);
                 const neighbors = [
                     encodeWithBorderCheck(row - 1, col),
                     encodeWithBorderCheck(row + 1, col),
@@ -98,27 +110,32 @@ export class Field extends Container implements FieldOptions {
         });
 
         // Fill grid by tiles
-        const tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
-            type,
-            texture,
-        }));
-
         for (const verticalLine of this._grid) {
             for (const cell of verticalLine) {
-                const randomTile = tileTypes[randi(0, tileTypes.length - 1)];
-                const tile = new Tile({
-                    type: randomTile.type,
-                    position: new Point().copyFrom(cell.position),
-                    width: cellWidth,
-                    height: cellHeight,
-                    texture: randomTile.texture,
-                    zIndex: verticalLine.length - cell.row,
-                });
-
+                const tile = this.generateTile();
+                // TODO: replace this by accessors
+                tile.container.position.copyFrom(cell.position);
+                tile.container.zIndex = verticalLine.length - cell.row;
                 cell.tile = tile;
-                this.addChild(tile.sprite);
             }
         }
+    }
+
+    generateTile(): Tile {
+        const { x: cellWidth, y: cellHeight } = this._cellSize;
+        const tileTypes = this._tileTypes;
+        const randomTile = tileTypes[randi(0, tileTypes.length - 1)];
+        const tile = new Tile({
+            type: randomTile.type,
+            position: new Point(),
+            width: cellWidth,
+            height: cellHeight,
+            texture: randomTile.texture,
+            zIndex: 0,
+        });
+
+        this.container.addChild(tile.container);
+        return tile;
     }
 
     update(time: TimeSystem) {
@@ -127,7 +144,7 @@ export class Field extends Container implements FieldOptions {
         for (const tileData of this._tilesToFall) {
             const { tile, dst } = tileData;
             const maxY = dst.position.y;
-            const position = tile.sprite.position;
+            const position = tile.container.position;
 
             tile.speed += TILE_ACCEL * dt;
             position.y += tile.speed * dt;
@@ -138,9 +155,17 @@ export class Field extends Container implements FieldOptions {
                 this._tilesToFall.delete(tileData);
             }
         }
+
+        if (!this._tilesToFall.size) {
+            this._blockTapping = false;
+        }
     }
 
     click(data: ClickData) {
+        if (this._blockTapping) {
+            return;
+        }
+
         const { x, y } = data.relative;
         const cell = this._getCellByCoords(x, y);
 
@@ -151,6 +176,7 @@ export class Field extends Container implements FieldOptions {
         // Destroy the batch of tiles
         const cells = this.getCellsBatch(cell);
         if (cells.size >= this.minBatchSize) {
+            this._blockTapping = true;
             for (const cell of cells) {
                 if (cell.tile !== null) {
                     this.destroyTile(cell.tile);
@@ -160,7 +186,9 @@ export class Field extends Container implements FieldOptions {
         }
 
         // Check tiles to fall
-        for (const verticalLine of this._grid) {
+        for (let col = 0; col < this._grid.length; col++) {
+            const verticalLine = this._grid[col];
+
             let emptyCells = 0;
             for (let ci = verticalLine.length - 1; ci >= 0; ci--) {
                 const cell = verticalLine[ci];
@@ -174,8 +202,21 @@ export class Field extends Container implements FieldOptions {
                     // Now the tile is not attached to the cell, because it's falling
                     cell.tile = null;
                     const dst = verticalLine[ci + emptyCells];
+                    tile.container.zIndex = verticalLine.length - dst.row;
                     this._tilesToFall.add({ tile, dst });
                 }
+            }
+
+            // Generate tiles on the top of grid to fill it
+            for (let ci = 0; ci < emptyCells; ci++) {
+                const tile = this.generateTile();
+                const dst = verticalLine[emptyCells - (ci + 1)];
+                const cX = col * this._cellSize.x;
+                const cY = -(ci + 1) * this._cellSize.y - tile.topPadding;
+
+                tile.container.position.set(cX, cY);
+                tile.container.zIndex = verticalLine.length - dst.row;
+                this._tilesToFall.add({ tile, dst });
             }
         }
     }
@@ -203,7 +244,7 @@ export class Field extends Container implements FieldOptions {
 
     destroyTile(tile: Tile) {
         this._tiles.delete(tile.id);
-        this.removeChild(tile.sprite);
+        this.container.removeChild(tile.container);
     }
 
     private _getCellByRowCol(row: number, col: number): Cell {
