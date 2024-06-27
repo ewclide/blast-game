@@ -20,9 +20,9 @@ export class App {
             field: {
                 width: 800,
                 height: 800,
-                padding: 10,
-                sizeX: 9,
-                sizeY: 9,
+                padding: 50,
+                sizeX: 10,
+                sizeY: 10,
                 minBatchSize: 2,
             },
             assets: {
