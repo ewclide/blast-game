@@ -1,9 +1,9 @@
-import { Container, Point } from 'pixi.js';
-import { Tile } from './tile';
+import { Bounds, Container, Graphics, Point, Texture } from 'pixi.js';
+import { Tile, Box } from './tile';
 import { randi } from './utils';
 import { ClickData } from './input';
 import { TimeSystem } from './time';
-import { InternalAssets } from './game';
+import { InternalAssets, TileType } from './game';
 
 export interface FieldOptions {
     width: number;
@@ -15,31 +15,170 @@ export interface FieldOptions {
 }
 
 interface Cell {
-    position: Point;
-    row: number;
-    col: number;
-    tile: Tile | null;
-    /*
-        Note: Store as mask
-        mask = 0x[row][col] = (row << 16 | col)
-        row = mask >> 16;
-        col = mask & 0xffff;
-    */
+    box: Box;
+    tiles: Set<Tile>;
     neighbors: number[];
 }
 
-const TILE_ACCEL = 3000;
 const encodeCoords = (row: number, col: number) => (row << 16) | col;
 const decodeCoords = (mask: number) => [mask >> 16, mask & 0xffff];
 
+class Grid {
+    readonly cellsByTile = new Map<Tile, Cell[]>();
+    readonly cells: Cell[][];
+    readonly cellWidth: number;
+    readonly cellHeight: number;
+    readonly sizeX: number;
+    readonly sizeY: number;
+
+    constructor(
+        container: Container,
+        width: number,
+        height: number,
+        sizeX: number = 5,
+        sizeY: number = 5
+    ) {
+        const cw = width / sizeX;
+        const ch = height / sizeY;
+
+        this.cellWidth = cw;
+        this.cellHeight = ch;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+
+        // const encodeWithBorderCheck = (row: number, col: number) => {
+        //     // Check field restrictions additionally
+        //     return col >= 0 && col < sizeX && row >= 0 && row < sizeY
+        //         ? encodeCoords(row, col)
+        //         : -1;
+        // };
+
+        this.cells = Array.from({ length: sizeX }, (_, col) => {
+            return Array.from({ length: sizeY }, (_, row) => {
+                const minX = col * cw;
+                const minY = row * ch;
+                const box = new Box(minX, minY, minX + cw, minY + ch);
+
+                // const neighbors = [
+                //     encodeWithBorderCheck(row - 1, col),
+                //     encodeWithBorderCheck(row + 1, col),
+                //     encodeWithBorderCheck(row, col - 1),
+                //     encodeWithBorderCheck(row, col + 1),
+                // ].filter((v) => v >= 0);
+
+                // let rect = new Graphics();
+                // rect.rect(minX, minY, cw, ch);
+                // rect.stroke({ width: 2, color: 0xff0000 });
+                // rect.zIndex = 1000;
+                // container.addChild(rect);
+
+                return {
+                    box,
+                    tiles: new Set(),
+                    neighbors: [],
+                };
+            });
+        });
+
+        console.log(this);
+    }
+
+    add(tile: Tile) {
+        const { minX, minY, maxX, maxY } = tile.container.getBounds();
+
+        const cells = [
+            this.getCellByCoords(minX, minY),
+            this.getCellByCoords(minX, maxY),
+            this.getCellByCoords(maxX, maxY),
+            this.getCellByCoords(maxX, minY),
+        ];
+
+        let cellsOfTile = this.cellsByTile.get(tile);
+        if (cellsOfTile === undefined) {
+            cellsOfTile = [];
+            this.cellsByTile.set(tile, cellsOfTile);
+        }
+
+        for (const cell of cells) {
+            if (cell !== null) {
+                cellsOfTile.push(cell);
+                cell.tiles.add(tile);
+            }
+        }
+    }
+
+    remove(tile: Tile) {
+        const cellsOfTile = this.cellsByTile.get(tile);
+        if (cellsOfTile === undefined) {
+            return;
+        }
+
+        for (const cell of cellsOfTile) {
+            cell.tiles.delete(tile);
+        }
+
+        this.cellsByTile.delete(tile);
+    }
+
+    getCellByCoords(x: number, y: number): Cell | null {
+        const col = Math.floor(x / this.cellWidth);
+        const verticalLine = this.cells[col];
+        if (verticalLine === undefined) {
+            return null;
+        }
+
+        const row = Math.floor(y / this.cellHeight);
+        return verticalLine[row] || null;
+    }
+
+    pickTile(x: number, y: number): Tile | null {
+        const cell = this.getCellByCoords(x, y);
+        if (cell === null) {
+            return null;
+        }
+
+        for (const tile of cell.tiles) {
+            const box = tile.container.getBounds();
+            if (box.containsPoint(x, y)) {
+                return tile;
+            }
+        }
+
+        return null;
+    }
+
+    getNearByTiles(tile: Tile): Set<Tile> {
+        const nearTiles = new Set<Tile>();
+        const cells = this.cellsByTile.get(tile);
+        if (cells === undefined) {
+            return nearTiles;
+        }
+
+        for (const cell of cells) {
+            for (const nearTile of cell.tiles) {
+                if (tile !== nearTile) {
+                    nearTiles.add(nearTile);
+                }
+            }
+        }
+
+        return nearTiles;
+    }
+}
+
+interface TileTypeDescriptor {
+    type: TileType;
+    texture: Texture;
+}
+
+const TILE_ACCEL = 2000;
+
 export class Field extends Container implements FieldOptions {
     private _tiles = new Map<number, Tile>();
-    private _grid: Cell[][] = [];
-    private _cellSize = new Point();
-    private _tilesToFall = new Set<{
-        tile: Tile;
-        dst: Cell;
-    }>();
+    private _grid: Grid;
+    private _tileSize = new Point();
+    private _tileTypes: TileTypeDescriptor[] = [];
+    private _tilesToFall = new Set<Tile>();
 
     readonly fieldWidth: number;
     readonly fieldHeight: number;
@@ -57,169 +196,217 @@ export class Field extends Container implements FieldOptions {
         this.sizeX = options.sizeX;
         this.sizeY = options.sizeY;
         this.minBatchSize = options.minBatchSize;
+
+        this._grid = new Grid(this, this.fieldWidth, this.fieldHeight);
     }
 
     create(assets: InternalAssets) {
-        const { sizeY, sizeX, padding } = this;
-        const cellWidth = (this.fieldWidth - padding * 2) / sizeX;
-        const cellHeight = (this.fieldHeight - padding * 2) / sizeY;
-        this._cellSize.set(cellWidth, cellHeight);
+        const { sizeY, sizeX } = this;
+        const tileWidth = this.fieldWidth / sizeX;
+        const tileHeight = this.fieldHeight / sizeY;
+        this._tileSize.set(tileWidth, tileHeight);
 
-        const encodeWithBorderCheck = (row: number, col: number) => {
-            // Check field restrictions additionally
-            return col >= 0 && col < sizeX && row >= 0 && row < sizeY
-                ? encodeCoords(row, col)
-                : -1;
-        };
-
-        // Create grid: by columns
-        this._grid = Array.from({ length: sizeX }, (_, col) => {
-            return Array.from({ length: sizeY }, (_, row) => {
-                const position = new Point(
-                    padding + col * cellWidth,
-                    padding + row * cellHeight
-                );
-
-                const neighbors = [
-                    encodeWithBorderCheck(row - 1, col),
-                    encodeWithBorderCheck(row + 1, col),
-                    encodeWithBorderCheck(row, col - 1),
-                    encodeWithBorderCheck(row, col + 1),
-                ].filter((v) => v >= 0);
-
-                return {
-                    position,
-                    col,
-                    row,
-                    tile: null,
-                    neighbors,
-                };
-            });
-        });
-
-        // Fill grid by tiles
-        const tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
+        // Prepare tile descriptors
+        this._tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
             type,
             texture,
         }));
 
-        for (const verticalLine of this._grid) {
-            for (const cell of verticalLine) {
-                const randomTile = tileTypes[randi(0, tileTypes.length - 1)];
-                const tile = new Tile({
-                    type: randomTile.type,
-                    position: new Point().copyFrom(cell.position),
-                    width: cellWidth,
-                    height: cellHeight,
-                    texture: randomTile.texture,
-                    zIndex: verticalLine.length - cell.row,
-                });
-
-                cell.tile = tile;
-                this.addChild(tile.sprite);
+        // Generate tiles
+        for (let col = 0; col < sizeX; col++) {
+            for (let row = 0; row < sizeY; row++) {
+                const tile = this.generateTile();
+                tile.setPosition(col * tileWidth, row * tileHeight);
+                tile.container.zIndex = sizeY - row;
+                this._grid.add(tile);
+                this._tiles.set(tile.id, tile);
             }
         }
+    }
+
+    generateTile(): Tile {
+        const { x: tileWidth, y: tileHeight } = this._tileSize;
+        const tileTypes = this._tileTypes;
+        const randomTile = tileTypes[randi(0, tileTypes.length - 1)];
+        const tile = new Tile({
+            type: randomTile.type,
+            position: new Point(),
+            width: tileWidth,
+            height: tileHeight,
+            texture: randomTile.texture,
+            zIndex: 0,
+        });
+
+        this.addChild(tile.container);
+        return tile;
     }
 
     update(time: TimeSystem) {
         const dt = time.delta;
 
-        for (const tileData of this._tilesToFall) {
-            const { tile, dst } = tileData;
-            const maxY = dst.position.y;
-            const position = tile.sprite.position;
+        for (const tile of this._tilesToFall) {
+            this.testIntersection(tile, dt);
+            this._grid.remove(tile);
+            this._grid.add(tile);
+        }
+    }
 
-            tile.speed += TILE_ACCEL * dt;
-            position.y += tile.speed * dt;
-            if (position.y >= maxY) {
-                dst.tile = tile;
-                tile.speed = 0;
-                position.y = maxY;
-                this._tilesToFall.delete(tileData);
+    testIntersection(tile: Tile, dt: number) {
+        // TODO
+        const position = tile.container.position;
+        const { width: tileW, height: tileH } = tile;
+        const tileX = position.x + tileW / 2;
+        const tileY = position.y + tileH / 2;
+        const { speed } = tile;
+
+        const offset = new Point();
+        offset.x = speed.x * dt;
+        offset.y = speed.y * dt;
+
+        if (position.y + tileH + offset.y > this.fieldHeight) {
+            tile.isStatic = true;
+            tile.speed.set(0, 0);
+            tile.setPosition(position.x, this.fieldHeight - tile.height);
+            this._tilesToFall.delete(tile);
+            return;
+        }
+
+        // const speedDir = new Point().copyFrom(speed).normalize();
+        const bottomTile = this._grid.pickTile(
+            // tileX + tileW * speedDir.x,
+            // tileY + tileH * speedDir.y
+            tileX + tileW * 0,
+            tileY + tileH * 1
+        );
+
+        if (
+            bottomTile !== null &&
+            tile.box.intersectBoxPredict(bottomTile.box, offset)
+        ) {
+            if (bottomTile.isStatic) {
+                tile.isStatic = true;
+                tile.speed.set(0, 0);
+                tile.setPosition(
+                    position.x,
+                    bottomTile.container.y - tile.height
+                );
+                this._tilesToFall.delete(tile);
+                return;
+            } else {
+                tile.speed.x = bottomTile.speed.x;
+                tile.speed.y = bottomTile.speed.y;
             }
         }
+
+        // Move only vertically
+        speed.y += TILE_ACCEL * dt;
+        position.x += speed.x * dt;
+        position.y += speed.y * dt;
+        tile.updateBox();
+    }
+
+    shuffle() {
+        // for (const verticalLine of this._grid) {
+        //     for (const cell of verticalLine) {
+        //     }
+        // }
     }
 
     click(data: ClickData) {
         const { x, y } = data.relative;
-        const cell = this._getCellByCoords(x, y);
-
-        if (cell === null) {
+        const tile = this._grid.pickTile(x, y);
+        if (tile === null || !tile.isStatic) {
             return;
         }
 
-        // Destroy the batch of tiles
-        const cells = this.getCellsBatch(cell);
-        if (cells.size >= this.minBatchSize) {
-            for (const cell of cells) {
-                if (cell.tile !== null) {
-                    this.destroyTile(cell.tile);
-                }
-                cell.tile = null;
+        const tilesBatch = this.getTilesBatch(tile);
+        if (tilesBatch.size >= this.minBatchSize) {
+            for (const tile of tilesBatch) {
+                this.destroyTile(tile);
             }
-        }
 
-        // Check tiles to fall
-        for (const verticalLine of this._grid) {
-            let emptyCells = 0;
-            for (let ci = verticalLine.length - 1; ci >= 0; ci--) {
-                const cell = verticalLine[ci];
-                const { tile } = cell;
-
-                if (tile === null) {
-                    emptyCells++;
-                }
-
-                if (tile !== null && emptyCells > 0) {
-                    // Now the tile is not attached to the cell, because it's falling
-                    cell.tile = null;
-                    const dst = verticalLine[ci + emptyCells];
-                    this._tilesToFall.add({ tile, dst });
+            for (const tile of tilesBatch) {
+                const topTiles = this.getTopTiles(tile);
+                for (const topTile of topTiles) {
+                    topTile.isStatic = false;
+                    this._tilesToFall.add(topTile);
                 }
             }
+
+            for (const tile of tilesBatch) {
+                const newTile = this.generateTile();
+                newTile.setPosition();
+            }
+
+            // console.log('_tilesToFall', this._tilesToFall.size);
         }
+
+        // Generate tiles on the top of grid to fill it
+        // for (let ci = 1; ci <= emptyCells; ci++) {
+        //     const tile = this.generateTile();
+        //     const dst = verticalLine[emptyCells - ci];
+        //     const cX = colIndex * this._tileSize.x + this.padding;
+        //     const cY = -ci * this._tileSize.y + this.padding - tile.topPadding;
+
+        //     tile.container.position.set(cX, cY);
+        //     tile.container.zIndex = verticalLine.length - dst.row;
+        //     this._tilesToFall.add({ tile, dst });
+        // }
     }
 
-    getCellsBatch(cell: Cell, _cells: Set<Cell> = new Set()): Set<Cell> {
-        const { tile } = cell;
-        if (tile === null || _cells.has(cell)) {
-            return _cells;
+    getTopTiles(tile: Tile, _topTiles = new Set<Tile>()): Set<Tile> {
+        // TODO: get from tile
+        const { width: tileW, height: tileH } = tile;
+        const tileX = tile.container.position.x + tileW / 2;
+        const tileY = tile.container.position.y + tileH / 2;
+
+        const topTile = this._grid.pickTile(tileX, tileY - tileH);
+        if (topTile !== null) {
+            _topTiles.add(topTile);
+            this.getTopTiles(topTile, _topTiles);
         }
 
-        _cells.add(cell);
+        return _topTiles;
+    }
 
-        for (const coords of cell.neighbors) {
-            const [row, col] = decodeCoords(coords);
-            const neighborCell = this._getCellByRowCol(row, col);
-            const neighborTile = neighborCell.tile;
+    getTilesBatch(tile: Tile, _batch = new Set<Tile>()): Set<Tile> {
+        if (_batch.has(tile)) {
+            return _batch;
+        }
 
-            if (neighborTile !== null && neighborTile.type === tile.type) {
-                this.getCellsBatch(neighborCell, _cells);
+        _batch.add(tile);
+
+        // TODO: get from tile
+        const { width: tileW, height: tileH } = tile;
+        const tileX = tile.container.position.x + tileW / 2;
+        const tileY = tile.container.position.y + tileH / 2;
+        const pickingCoords = [
+            [tileX - tileW, tileY],
+            [tileX + tileW, tileY],
+            [tileX, tileY - tileH],
+            [tileX, tileY + tileH],
+        ];
+
+        for (const coords of pickingCoords) {
+            const nearTile = this._grid.pickTile(
+                ...(coords as [number, number])
+            );
+            if (
+                nearTile !== null &&
+                nearTile.isStatic &&
+                nearTile.type === tile.type
+            ) {
+                this.getTilesBatch(nearTile, _batch);
             }
         }
 
-        return _cells;
+        return _batch;
     }
 
     destroyTile(tile: Tile) {
+        // console.log('destroy');
         this._tiles.delete(tile.id);
-        this.removeChild(tile.sprite);
-    }
-
-    private _getCellByRowCol(row: number, col: number): Cell {
-        return this._grid[col][row];
-    }
-
-    private _getCellByCoords(x: number, y: number): Cell | null {
-        const pad = this.padding;
-        const col = Math.floor((x - pad) / this._cellSize.x);
-        const row = Math.floor((y - pad) / this._cellSize.y);
-
-        const verticalLine = this._grid[col];
-        if (verticalLine === undefined) {
-            return null;
-        }
-
-        return verticalLine[row] || null;
+        this._grid.remove(tile);
+        this.removeChild(tile.container);
     }
 }
