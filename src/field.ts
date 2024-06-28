@@ -1,9 +1,9 @@
-import { Container, Graphics, Point, Texture } from 'pixi.js';
-import { Tile } from './tile';
-import { randi } from './utils';
-import { ClickData } from './input';
-import { TimeSystem } from './time';
+import { Circle, Container, Graphics, Point, Texture } from 'pixi.js';
 import { InternalAssets, TileType } from './game';
+import { clamp, randi } from './utils';
+import { TimeSystem } from './time';
+import { ClickData } from './input';
+import { Tile } from './tile';
 
 export interface FieldOptions {
     width: number;
@@ -15,6 +15,7 @@ export interface FieldOptions {
 }
 
 interface Cell {
+    box: Box;
     position: Point;
     row: number;
     col: number;
@@ -37,6 +38,53 @@ const TILE_ACCEL = 3000;
 const encodeCoords = (row: number, col: number) => (row << 16) | col;
 const decodeCoords = (mask: number) => [mask >> 16, mask & 0xffff];
 
+export class Box {
+    readonly min: Point = new Point();
+    readonly max: Point = new Point();
+
+    get extents(): number[] {
+        const { min, max } = this;
+        const w = Math.abs(max.x - min.x) / 2;
+        const h = Math.abs(max.y - min.y) / 2;
+
+        return [min.x + w, min.y + h, w, h];
+    }
+
+    containPoint(point: Point): boolean {
+        const { min, max } = this;
+        const { x, y } = point;
+        return x >= min.x && x <= max.x && y >= min.y && y <= max.y;
+    }
+
+    setPositionSize(x: number, y: number, width: number, height: number) {
+        this.min.x = x;
+        this.min.y = y;
+        this.max.x = x + width;
+        this.max.y = y + height;
+    }
+}
+
+function vectorLength(vector: Point): number {
+    const { x, y } = vector;
+    return Math.sqrt(x * x + y * y);
+}
+
+function testCircleBox(circle: Circle, aabb: Box): boolean {
+    const center = new Point(circle.x, circle.y);
+    const [bx, by, boxHalfWidth, boxHalfHeight] = aabb.extents;
+    const difference = new Point(center.x - bx, center.y - by);
+    const clamped = new Point(
+        clamp(difference.x, -boxHalfWidth, boxHalfWidth),
+        clamp(difference.y, -boxHalfHeight, boxHalfHeight)
+    );
+    const closest = new Point(bx + clamped.x, by + clamped.y);
+
+    difference.x = closest.x - center.x;
+    difference.y = closest.y - center.y;
+
+    return vectorLength(difference) < circle.radius;
+}
+
 export class Field {
     private _tiles = new Map<number, Tile>();
     private _grid: Cell[][] = [];
@@ -46,6 +94,7 @@ export class Field {
     private _tilesToFall = new Set<{
         tile: Tile;
         dst: Cell;
+        delay: number;
     }>();
 
     readonly fieldWidth: number;
@@ -104,15 +153,28 @@ export class Field {
         // Create grid: by columns
         this._grid = Array.from({ length: sizeX }, (_, col) => {
             return Array.from({ length: sizeY }, (_, row) => {
+                const box = new Box();
                 const position = new Point(col * cellWidth, row * cellHeight);
                 const neighbors = [
                     encodeWithBorderCheck(row - 1, col),
                     encodeWithBorderCheck(row + 1, col),
                     encodeWithBorderCheck(row, col - 1),
                     encodeWithBorderCheck(row, col + 1),
+                    encodeWithBorderCheck(row - 1, col - 1),
+                    encodeWithBorderCheck(row - 1, col + 1),
+                    encodeWithBorderCheck(row + 1, col - 1),
+                    encodeWithBorderCheck(row + 1, col + 1),
                 ].filter((v) => v >= 0);
 
+                box.setPositionSize(
+                    position.x,
+                    position.y,
+                    cellWidth,
+                    cellHeight
+                );
+
                 return {
+                    box,
                     position,
                     col,
                     row,
@@ -188,7 +250,12 @@ export class Field {
         const dt = time.delta;
 
         for (const tileData of this._tilesToFall) {
-            const { tile, dst } = tileData;
+            const { tile, dst, delay } = tileData;
+            if (delay > 0) {
+                tileData.delay -= dt;
+                continue;
+            }
+
             const maxY = dst.position.y;
             const position = tile.container.position;
 
@@ -196,8 +263,8 @@ export class Field {
             position.y += tile.speed * dt;
             if (position.y >= maxY) {
                 dst.tile = tile;
-                tile.speed = 0;
                 position.y = maxY;
+                tile.speed = 0;
                 this._tilesToFall.delete(tileData);
             }
         }
@@ -220,7 +287,8 @@ export class Field {
         }
 
         // Destroy the batch of tiles
-        const cells = this.getCellsBatch(cell);
+        // const cells = this.getCellsBatch(cell);
+        const cells = this.blowUpTiles(cell, 220);
         if (cells.size >= this.minBatchSize) {
             this._blockTapping = true;
             for (const cell of cells) {
@@ -249,7 +317,11 @@ export class Field {
                     cell.tile = null;
                     const dst = verticalLine[ci + emptyCells];
                     tile.container.zIndex = verticalLine.length - dst.row;
-                    this._tilesToFall.add({ tile, dst });
+                    this._tilesToFall.add({
+                        tile,
+                        dst,
+                        delay: 1,
+                    });
                 }
             }
 
@@ -262,7 +334,12 @@ export class Field {
 
                 tile.container.position.set(cX, cY);
                 tile.container.zIndex = verticalLine.length - dst.row;
-                this._tilesToFall.add({ tile, dst });
+
+                this._tilesToFall.add({
+                    tile,
+                    dst,
+                    delay: 1,
+                });
             }
         }
     }
@@ -275,13 +352,55 @@ export class Field {
 
         _cells.add(cell);
 
-        for (const coords of cell.neighbors) {
+        // Skip diagonal neighbors (last 4)
+        for (let ni = 0; ni < 4; ni++) {
+            const coords = cell.neighbors[ni];
             const [row, col] = decodeCoords(coords);
             const neighborCell = this._getCellByRowCol(row, col);
             const neighborTile = neighborCell.tile;
 
             if (neighborTile !== null && neighborTile.type === tile.type) {
                 this.getCellsBatch(neighborCell, _cells);
+            }
+        }
+
+        return _cells;
+    }
+
+    blowUpTiles(
+        cell: Cell,
+        radius: number,
+        _circle?: Circle,
+        _cells = new Set<Cell>()
+    ): Set<Cell> {
+        const { tile } = cell;
+        if (tile === null || _cells.has(cell)) {
+            return _cells;
+        }
+
+        let circle = _circle;
+        if (circle === undefined) {
+            circle = new Circle(
+                cell.position.x + this._cellSize.x / 2,
+                cell.position.y + this._cellSize.y / 2,
+                radius
+            );
+
+            const grap = new Graphics();
+            grap.circle(circle.x, circle.y, circle.radius);
+            grap.stroke({ width: 2, color: 0xff00ff });
+            grap.zIndex = 1000;
+            this.container.addChild(grap);
+        }
+
+        // TODO: get from cell
+        if (testCircleBox(circle, cell.box)) {
+            _cells.add(cell);
+
+            for (const coords of cell.neighbors) {
+                const [row, col] = decodeCoords(coords);
+                const neighborCell = this._getCellByRowCol(row, col);
+                this.blowUpTiles(neighborCell, radius, circle, _cells);
             }
         }
 
