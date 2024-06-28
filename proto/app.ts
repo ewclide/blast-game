@@ -1,5 +1,6 @@
 import { Application } from 'pixi.js';
 import { Game } from './game';
+import { UI } from './ui';
 
 export class App {
     private _game!: Game;
@@ -9,7 +10,7 @@ export class App {
     async init() {
         const pixi = new Application();
         await pixi.init({
-            background: 0xffffff,
+            background: 0xa1a1a1,
             resizeTo: window,
         });
 
@@ -17,8 +18,8 @@ export class App {
 
         const game = new Game(pixi, {
             field: {
-                width: 800,
-                height: 800,
+                width: 550,
+                height: 550,
                 padding: 50,
                 sizeX: 10,
                 sizeY: 10,
@@ -30,6 +31,7 @@ export class App {
                 'tile-pink': 'images/tile-pink.png',
                 'tile-yellow': 'images/tile-yellow.png',
                 'tile-green': 'images/tile-green.png',
+                'grid-back': 'images/grid-back.png',
             },
             tileTypes: {
                 red: 'tile-red',
