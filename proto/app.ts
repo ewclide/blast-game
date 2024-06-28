@@ -9,9 +9,8 @@ export class App {
     async init() {
         const pixi = new Application();
         await pixi.init({
-            width: 1024,
-            height: 900,
             background: 0xffffff,
+            resizeTo: window,
         });
 
         this.container.appendChild(pixi.canvas);
