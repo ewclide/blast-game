@@ -1,4 +1,4 @@
-import { Application, Container } from 'pixi.js';
+import { Application, Container, Text } from 'pixi.js';
 
 export type LayoutAlign = 'start' | 'center' | 'end';
 export type LayoutDirection = 'vertical' | 'horizontal';
@@ -60,8 +60,10 @@ export class Layout {
         this._calculator.calc(this._pixi.canvas, this._root, this._rects);
         for (const [key, container] of this._containers) {
             const rect = this.getRect(key);
-            container.width = rect.width;
-            container.height = rect.height;
+            if (!(container instanceof Text)) {
+                container.width = rect.width;
+                container.height = rect.height;
+            }
             container.x = rect.x;
             container.y = rect.y;
         }
@@ -107,25 +109,9 @@ class LayoutCalculator implements ILayoutCalculator {
     }
 
     private _createSection(props: LayoutSection): HTMLDivElement {
-        const {
-            key,
-            width = '100%',
-            height = '100%',
-            direction = 'horizontal',
-            sections,
-            block,
-        } = props;
+        const { sections, block } = props;
 
-        const div = this._createElement(key);
-        Object.assign(div.style, {
-            width,
-            height,
-            display: 'flex',
-            flexDirection: direction === 'vertical' ? 'column' : 'row',
-            // border: '1px solid red',
-            // boxSizing: 'border-box',
-            // zIndex: 1000,
-        });
+        const div = this._createElement(props);
 
         if (block) {
             const subDiv = this._createBlock(div, block);
@@ -148,9 +134,6 @@ class LayoutCalculator implements ILayoutCalculator {
         props: LayoutBlock
     ): HTMLDivElement {
         const {
-            key,
-            width = '100%',
-            height = '100%',
             alighX = 'center',
             alignY = 'center',
             offsetX,
@@ -159,7 +142,7 @@ class LayoutCalculator implements ILayoutCalculator {
             block,
         } = props;
 
-        const div = this._createElement(key);
+        const div = this._createElement(props);
 
         const margin: Record<string, string> = {};
         if (offsetX) {
@@ -182,12 +165,7 @@ class LayoutCalculator implements ILayoutCalculator {
             alignItems: alignY,
         });
 
-        Object.assign(div.style, {
-            width,
-            height,
-            display: 'flex',
-            ...margin,
-        });
+        Object.assign(div.style, margin);
 
         if (block) {
             const subDiv = this._createBlock(div, block);
@@ -205,8 +183,25 @@ class LayoutCalculator implements ILayoutCalculator {
         return div;
     }
 
-    private _createElement(key?: string): HTMLDivElement {
+    private _createElement(props: LayoutSection): HTMLDivElement {
+        const {
+            key,
+            width = '100%',
+            height = '100%',
+            direction = 'horizontal',
+        } = props;
+
         const div = document.createElement('div');
+        Object.assign(div.style, {
+            width,
+            height,
+            display: 'flex',
+            flexDirection: direction === 'vertical' ? 'column' : 'row',
+            border: '1px dashed red',
+            boxSizing: 'border-box',
+            zIndex: 1000,
+        });
+
         if (!key) {
             return div;
         }
