@@ -385,15 +385,8 @@ export class Field {
                 cell.position.y + this._cellSize.y / 2,
                 radius
             );
-
-            const grap = new Graphics();
-            grap.circle(circle.x, circle.y, circle.radius);
-            grap.stroke({ width: 2, color: 0xff00ff });
-            grap.zIndex = 1000;
-            this.container.addChild(grap);
         }
 
-        // TODO: get from cell
         if (testCircleBox(circle, cell.box)) {
             _cells.add(cell);
 
