@@ -8,7 +8,6 @@ import { Tile } from './tile';
 export interface FieldOptions {
     width: number;
     height: number;
-    padding: number;
     sizeX: number;
     sizeY: number;
     minBatchSize: number;
@@ -99,7 +98,6 @@ export class Grid {
 
     readonly fieldWidth: number;
     readonly fieldHeight: number;
-    readonly padding: number;
     readonly sizeX: number;
     readonly sizeY: number;
     readonly minBatchSize: number;
@@ -109,20 +107,16 @@ export class Grid {
         this.container = new Container();
         this.fieldWidth = options.width;
         this.fieldHeight = options.height;
-        this.padding = options.padding;
         this.sizeX = options.sizeX;
         this.sizeY = options.sizeY;
         this.minBatchSize = options.minBatchSize;
     }
 
     create(assets: InternalAssets) {
-        const { sizeY, sizeX, padding } = this;
+        const { sizeY, sizeX } = this;
         const cellWidth = this.fieldWidth / sizeX;
         const cellHeight = this.fieldHeight / sizeY;
         this._cellSize.set(cellWidth, cellHeight);
-        // TODO: think about padding
-        this.container.position.x += padding;
-        this.container.position.y += padding;
 
         const clipMask = new Graphics();
         const topPadding = 10;
@@ -287,8 +281,8 @@ export class Grid {
         }
 
         // Destroy the batch of tiles
-        // const cells = this.getCellsBatch(cell);
-        const cells = this.blowUpTiles(cell, 220);
+        const cells = this.getCellsBatch(cell);
+        // const cells = this.blowUpTiles(cell, 220);
         if (cells.size >= this.minBatchSize) {
             this._blockTapping = true;
             for (const cell of cells) {
@@ -320,7 +314,7 @@ export class Grid {
                     this._tilesToFall.add({
                         tile,
                         dst,
-                        delay: 1,
+                        delay: 0,
                     });
                 }
             }
@@ -338,7 +332,7 @@ export class Grid {
                 this._tilesToFall.add({
                     tile,
                     dst,
-                    delay: 1,
+                    delay: 0,
                 });
             }
         }
@@ -410,9 +404,9 @@ export class Grid {
     }
 
     private _getCellByCoords(x: number, y: number): Cell | null {
-        const pad = this.padding;
-        const col = Math.floor((x - pad) / this._cellSize.x);
-        const row = Math.floor((y - pad) / this._cellSize.y);
+        const { x: padX, y: padY } = this.container.position;
+        const col = Math.floor((x - padX) / this._cellSize.x);
+        const row = Math.floor((y - padY) / this._cellSize.y);
 
         const verticalLine = this._cells[col];
         if (verticalLine === undefined) {
