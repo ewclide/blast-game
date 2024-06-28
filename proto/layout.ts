@@ -1,4 +1,4 @@
-import { Application } from 'pixi.js';
+import { Application, Container } from 'pixi.js';
 
 export type LayoutAlign = 'start' | 'center' | 'end';
 export type LayoutDirection = 'vertical' | 'horizontal';
@@ -30,11 +30,13 @@ export class Layout {
     private _rects: Map<string, LayoutRect> = new Map();
     private _root: LayoutSection;
     private _calculator: ILayoutCalculator;
+    private _containers: Map<string, Container> = new Map();
 
     constructor(pixi: Application, root: LayoutSection) {
         this._pixi = pixi;
         this._root = root;
         this._calculator = new LayoutCalculator();
+        this._calculator.calc(pixi.canvas, root, this._rects);
         console.log(this);
     }
 
@@ -46,8 +48,23 @@ export class Layout {
         return rect;
     }
 
+    attach(key: string, container: Container) {
+        if (this._containers.has(key)) {
+            throw new Error();
+        }
+
+        this._containers.set(key, container);
+    }
+
     update() {
         this._calculator.calc(this._pixi.canvas, this._root, this._rects);
+        for (const [key, container] of this._containers) {
+            const rect = this.getRect(key);
+            container.width = rect.width;
+            container.height = rect.height;
+            container.x = rect.x;
+            container.y = rect.y;
+        }
     }
 }
 

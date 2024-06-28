@@ -38,6 +38,8 @@ export class Game {
         this.options = options;
         this.ui = new UI(pixi);
 
+        this.ui.layout.attach('grid', this.grid.container);
+
         pixi.stage.addChild(this.grid.container);
     }
 
@@ -66,6 +68,7 @@ export class Game {
 
     async start() {
         await this._loadAssets();
+
         this.grid.create(this._assets);
         this.ui.create(this._assets);
     }

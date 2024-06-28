@@ -72,20 +72,13 @@ export class UI {
         const gridBack = new Graphics();
         this._gridBack = gridBack;
         gridBack.texture(gridBackTexture);
-
         this.container.addChild(gridBack);
+        this.layout.attach('grid-back', gridBack);
 
         this._handleOnResize();
     }
 
     private _handleOnResize = () => {
         this.layout.update();
-
-        const rect = this.layout.getRect('grid-back');
-        const gridBack = this._gridBack;
-        gridBack.width = rect.width;
-        gridBack.height = rect.height;
-        gridBack.x = rect.x;
-        gridBack.y = rect.y;
     };
 }
