@@ -10,17 +10,16 @@ export class App {
     async init() {
         const pixi = new Application();
         await pixi.init({
-            background: 0xa1a1a1,
+            background: 0x141414,
             resizeTo: window,
         });
 
         this.container.appendChild(pixi.canvas);
 
         const game = new Game(pixi, {
-            field: {
+            grid: {
                 width: 550,
                 height: 550,
-                padding: 50,
                 sizeX: 10,
                 sizeY: 10,
                 minBatchSize: 2,
@@ -32,6 +31,12 @@ export class App {
                 'tile-yellow': 'images/tile-yellow.png',
                 'tile-green': 'images/tile-green.png',
                 'grid-back': 'images/grid-back.png',
+                'scores-back': 'images/scores-back.png',
+                'booster-back': 'images/booster-back.png',
+                'progress-back': 'images/progress-back.png',
+                'progress-fill': 'images/progress-fill.png',
+                'progress-bg': 'images/progress-bg.png',
+                'pause-button': 'images/pause-button.png',
             },
             tileTypes: {
                 red: 'tile-red',

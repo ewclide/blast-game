@@ -1,5 +1,5 @@
 import { Application, Assets, Texture } from 'pixi.js';
-import { Grid, FieldOptions } from './grid';
+import { Grid, GridOptions } from './grid';
 import { InputSystem } from './input';
 import { TimeSystem } from './time';
 import { UI } from './ui';
@@ -13,7 +13,7 @@ export type ImagePath = string;
 export type TileType = number | string;
 
 export interface GameOptions {
-    field: FieldOptions;
+    grid: GridOptions;
     assets: Record<ImageName, ImagePath>;
     tileTypes: Record<TileType, ImageName>;
 }
@@ -34,8 +34,10 @@ export class Game {
     constructor(pixi: Application, options: GameOptions) {
         this.time = new TimeSystem();
         this.input = new InputSystem(pixi.canvas);
-        this.grid = new Grid(options.field);
+        this.grid = new Grid(options.grid);
         this.options = options;
+
+        // TODO: pass props (like grid size)
         this.ui = new UI(pixi);
 
         this.ui.layout.attach('grid', this.grid.container);
