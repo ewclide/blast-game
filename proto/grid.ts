@@ -5,7 +5,7 @@ import { TimeSystem } from './time';
 import { ClickData } from './input';
 import { Tile } from './tile';
 
-export interface FieldOptions {
+export interface GridOptions {
     width: number;
     height: number;
     sizeX: number;
@@ -103,7 +103,7 @@ export class Grid {
     readonly minBatchSize: number;
     readonly container: Container;
 
-    constructor(options: FieldOptions) {
+    constructor(options: GridOptions) {
         this.container = new Container();
         this.fieldWidth = options.width;
         this.fieldHeight = options.height;
@@ -130,6 +130,8 @@ export class Grid {
         clipMask.renderable = true;
         this.container.addChild(clipMask);
         this.container.mask = clipMask;
+        this.container.interactive = true;
+        this.container.cursor = 'pointer';
 
         // Prepare tile descriptors
         this._tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
