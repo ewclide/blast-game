@@ -85,9 +85,9 @@ function testCircleBox(circle: Circle, aabb: Box): boolean {
     return vectorLength(difference) < circle.radius;
 }
 
-export class Field {
+export class Grid {
     private _tiles = new Map<number, Tile>();
-    private _grid: Cell[][] = [];
+    private _cells: Cell[][] = [];
     private _cellSize = new Point();
     private _blockTapping: boolean = false;
     private _tileTypes: TileTypeDescriptor[] = [];
@@ -151,7 +151,7 @@ export class Field {
         };
 
         // Create grid: by columns
-        this._grid = Array.from({ length: sizeX }, (_, col) => {
+        this._cells = Array.from({ length: sizeX }, (_, col) => {
             return Array.from({ length: sizeY }, (_, row) => {
                 const box = new Box();
                 const position = new Point(col * cellWidth, row * cellHeight);
@@ -185,7 +185,7 @@ export class Field {
         });
 
         // Fill grid by tiles
-        for (const verticalLine of this._grid) {
+        for (const verticalLine of this._cells) {
             for (const cell of verticalLine) {
                 const tile = this.generateTile();
                 // TODO: replace this by accessors
@@ -215,7 +215,7 @@ export class Field {
     }
 
     shuffle() {
-        for (const verticalLine of this._grid) {
+        for (const verticalLine of this._cells) {
             for (const cell of verticalLine) {
                 cell.tile = null;
             }
@@ -238,7 +238,7 @@ export class Field {
         tiles.forEach((tile, index) => {
             const col = index % this.sizeX;
             const row = Math.floor(index / this.sizeX);
-            const cell = this._grid[col][row];
+            const cell = this._cells[col][row];
 
             tile.container.position.copyFrom(cell.position);
             tile.container.zIndex = this.sizeY - row;
@@ -300,8 +300,8 @@ export class Field {
         }
 
         // Check tiles to fall
-        for (let col = 0; col < this._grid.length; col++) {
-            const verticalLine = this._grid[col];
+        for (let col = 0; col < this._cells.length; col++) {
+            const verticalLine = this._cells[col];
 
             let emptyCells = 0;
             for (let ci = verticalLine.length - 1; ci >= 0; ci--) {
@@ -406,7 +406,7 @@ export class Field {
     }
 
     private _getCellByRowCol(row: number, col: number): Cell {
-        return this._grid[col][row];
+        return this._cells[col][row];
     }
 
     private _getCellByCoords(x: number, y: number): Cell | null {
@@ -414,7 +414,7 @@ export class Field {
         const col = Math.floor((x - pad) / this._cellSize.x);
         const row = Math.floor((y - pad) / this._cellSize.y);
 
-        const verticalLine = this._grid[col];
+        const verticalLine = this._cells[col];
         if (verticalLine === undefined) {
             return null;
         }

@@ -1,7 +1,8 @@
 import { Application, Assets, Texture } from 'pixi.js';
-import { Field, FieldOptions } from './field';
+import { Grid, FieldOptions } from './grid';
 import { InputSystem } from './input';
 import { TimeSystem } from './time';
+import { UI } from './ui';
 
 export interface AssetsDescriptor {
     tiles: { type: string; image: string }[];
@@ -19,34 +20,37 @@ export interface GameOptions {
 
 export interface InternalAssets {
     tileTypes: Map<TileType, Texture>;
+    textures: Map<string, Texture>;
 }
 
 export class Game {
     readonly time: TimeSystem;
     readonly input: InputSystem;
-    readonly field: Field;
+    readonly grid: Grid;
     readonly options: GameOptions;
+    readonly ui: UI;
     private _assets!: InternalAssets;
 
     constructor(pixi: Application, options: GameOptions) {
         this.time = new TimeSystem();
         this.input = new InputSystem(pixi.canvas);
-        this.field = new Field(options.field);
+        this.grid = new Grid(options.field);
         this.options = options;
+        this.ui = new UI(pixi);
 
-        pixi.stage.addChild(this.field.container);
+        pixi.stage.addChild(this.grid.container);
     }
 
     private async _loadAssets() {
-        const textureByImage = new Map<ImageName, Texture>();
+        const textures = new Map<ImageName, Texture>();
         for (const [name, path] of Object.entries(this.options.assets)) {
             const texture = await Assets.load(path);
-            textureByImage.set(name, texture);
+            textures.set(name, texture);
         }
 
         const tileTypes = new Map<TileType, Texture>();
         for (const [type, image] of Object.entries(this.options.tileTypes)) {
-            const texture = textureByImage.get(image);
+            const texture = textures.get(image);
             if (texture === undefined) {
                 throw new Error();
             }
@@ -56,12 +60,14 @@ export class Game {
 
         this._assets = {
             tileTypes,
+            textures,
         };
     }
 
     async start() {
         await this._loadAssets();
-        this.field.create(this._assets);
+        this.grid.create(this._assets);
+        this.ui.create(this._assets);
     }
 
     update = () => {
@@ -71,11 +77,11 @@ export class Game {
     };
 
     logicUpdate() {
-        this.field.update(this.time);
+        this.grid.update(this.time);
 
         const click = this.input.click;
         if (click) {
-            this.field.click(click);
+            this.grid.click(click);
         }
     }
 }
