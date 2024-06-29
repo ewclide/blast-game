@@ -1,16 +1,17 @@
 import { Button, ProgressBar } from '@pixi/ui';
 import {
     Application,
+    TextOptions,
     Container,
     Graphics,
+    Texture,
     Sprite,
     Text,
-    Texture,
 } from 'pixi.js';
-import { Layout } from './layout';
-import { InternalAssets } from './game';
-import { uiLayout } from './ui-layout';
+
+import { Layout, LayoutContentDescriptor } from './layout';
 import { ResourceManager } from './resource';
+import { uiLayout } from './ui-layout';
 
 export class UI {
     readonly container: Container;
@@ -35,101 +36,50 @@ export class UI {
     create() {
         const { resouces } = this;
 
-        const gridBackTexture = resouces.get(Texture, 'grid-back');
-        const scoresBackTexture = resouces.get(Texture, 'scores-back');
-        const boosterBackTexture = resouces.get(Texture, 'booster-back');
-        const progressBackTexture = resouces.get(Texture, 'progress-back');
-        const progressFillTexture = resouces.get(Texture, 'progress-fill');
-        const progressBgTexture = resouces.get(Texture, 'progress-bg');
-        const pauseButtonTexture = resouces.get(Texture, 'pause-button');
+        this.layout.regContentBuilder<{ textureId: string }>(
+            'texture',
+            (data) => {
+                const texture = resouces.get(Texture, data.textureId);
+                const graphics = new Graphics();
+                graphics.texture(texture);
+                return graphics;
+            }
+        );
 
-        const scoresBack = new Graphics();
-        scoresBack.texture(scoresBackTexture);
-        this.container.addChild(scoresBack);
-        this.layout.attach('scores-back', scoresBack);
+        this.layout.regContentBuilder<{ textureId: string }>(
+            'button',
+            (data) => {
+                const texture = resouces.get(Texture, data.textureId);
+                const sprite = new Sprite(texture);
+                const button = new Button(sprite);
+                // button.onPress.connect(() => console.log('click booster 0'));
+                return button.view;
+            }
+        );
 
-        const gridBack = new Graphics();
-        gridBack.texture(gridBackTexture);
-        this.container.addChild(gridBack);
-        this.layout.attach('grid-back', gridBack);
+        type ProgressContenxt = {
+            value: number;
+            fill: string;
+            bg: string;
+        } & LayoutContentDescriptor;
 
-        const boosterBack0 = new Sprite(boosterBackTexture);
-        const boosterButton0 = new Button(boosterBack0);
-        this.container.addChild(boosterButton0.view);
-        this.layout.attach('booster-0', boosterButton0.view);
-        boosterButton0.onPress.connect(() => console.log('click booster 0'));
-
-        const boosterBack1 = new Sprite(boosterBackTexture);
-        const boosterButton1 = new Button(boosterBack1);
-        this.container.addChild(boosterButton1.view);
-        this.layout.attach('booster-1', boosterButton1.view);
-        boosterButton1.onPress.connect(() => console.log('click booster 0'));
-
-        const boosterBack2 = new Sprite(boosterBackTexture);
-        const boosterButton2 = new Button(boosterBack2);
-        this.container.addChild(boosterButton2.view);
-        this.layout.attach('booster-2', boosterButton2.view);
-        boosterButton2.onPress.connect(() => console.log('click booster 0'));
-
-        const scoresText = new Text({
-            style: {
-                fill: 0xffffff,
-                fontWeight: 'bolder',
-                fontSize: 40,
-                align: 'center',
-            },
+        this.layout.regContentBuilder<ProgressContenxt>('progress', (data) => {
+            const bg = resouces.get(Texture, data.bg);
+            const fill = resouces.get(Texture, data.fill);
+            return new ProgressBar({
+                bg: new Sprite(bg),
+                fill: new Sprite(fill),
+                progress: data.value || 0,
+            });
         });
-        scoresText.text = 'ОЧКИ:\n0';
-        scoresText.anchor.set(0.5, 0.5);
-        this.container.addChild(scoresText);
-        this.layout.attach('scores', scoresText);
 
-        const stepsText = new Text({
-            style: {
-                fill: 0xffffff,
-                fontWeight: 'bolder',
-                fontSize: 86,
-                align: 'center',
-            },
-        });
-        stepsText.text = '37';
-        stepsText.anchor.set(0.5, 0.5);
-        this.container.addChild(stepsText);
-        this.layout.attach('steps', stepsText);
+        type TextContent = TextOptions & LayoutContentDescriptor;
+        this.layout.regContentBuilder<TextContent>(
+            'text',
+            (data) => new Text(data)
+        );
 
-        const progressBack = new Graphics();
-        progressBack.texture(progressBackTexture);
-        this.container.addChild(progressBack);
-        this.layout.attach('progress-back', progressBack);
-
-        const progressText = new Text({
-            style: {
-                fill: 0xffffff,
-                fontWeight: 'bolder',
-                fontSize: 32,
-                align: 'center',
-            },
-        });
-        progressText.text = 'ПРОГРЕСС';
-        progressText.anchor.set(0.5, 0.5);
-        this.container.addChild(progressText);
-        this.layout.attach('progress-text', progressText);
-
-        const progressBar = new ProgressBar({
-            bg: new Sprite(progressBgTexture),
-            fill: new Sprite(progressFillTexture),
-            progress: 50,
-        });
-        this.container.addChild(progressBar);
-        this.layout.attach('progress-bar', progressBar);
-
-        const pauseBack = new Sprite(pauseButtonTexture);
-        const pauseButton = new Button(pauseBack);
-        this.container.addChild(pauseButton.view);
-        this.layout.attach('pause', pauseButton.view);
-        pauseButton.onPress.connect(() => console.log('click-pause'));
-
-        this._handleOnResize();
+        this.layout.create(this.container);
     }
 
     private _handleOnResize = () => {

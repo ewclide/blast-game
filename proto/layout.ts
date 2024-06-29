@@ -1,7 +1,19 @@
 import { Application, Container, Text } from 'pixi.js';
 
 export type LayoutAlign = 'start' | 'center' | 'end';
+
 export type LayoutDirection = 'vertical' | 'horizontal';
+
+export type LayoutContentDescriptor = Record<string, unknown>;
+
+export type LayoutContentBuilder<T extends LayoutContentDescriptor = any> = (
+    descriptor: T
+) => Container;
+
+export interface LayoutContent extends LayoutContentDescriptor {
+    type: string;
+}
+
 export interface LayoutSection {
     key?: string;
     width?: string;
@@ -9,6 +21,7 @@ export interface LayoutSection {
     direction?: LayoutDirection;
     sections?: LayoutSection[];
     block?: LayoutBlock;
+    content?: LayoutContent;
 }
 
 export interface LayoutRect {
@@ -28,22 +41,40 @@ export interface LayoutBlock extends LayoutSection {
 export class Layout {
     private _pixi: Application;
     private _rects: Map<string, LayoutRect> = new Map();
-    private _root: LayoutSection;
+    private _section: LayoutSection;
     private _calculator: ILayoutCalculator;
     private _containers: Map<string, Container> = new Map();
+    private _contentBuilders: Map<string, LayoutContentBuilder> = new Map();
 
     constructor(pixi: Application, root: LayoutSection) {
         this._pixi = pixi;
-        this._root = root;
+        this._section = root;
         this._calculator = new LayoutCalculator();
         this._calculator.calc(pixi.canvas, root, this._rects);
         console.log(this);
     }
 
+    create(root: Container) {
+        this._createContainers(root, this._section);
+        this.update();
+        console.log(this);
+    }
+
+    regContentBuilder<T extends LayoutContentDescriptor>(
+        type: string,
+        builder: LayoutContentBuilder<T>
+    ) {
+        if (this._contentBuilders.has(type)) {
+            throw new Error();
+        }
+
+        this._contentBuilders.set(type, builder);
+    }
+
     getRect(key: string): LayoutRect {
         const rect = this._rects.get(key);
         if (rect === undefined) {
-            throw new Error();
+            throw new Error(`Unknown layout key ${key}`);
         }
         return rect;
     }
@@ -57,9 +88,11 @@ export class Layout {
     }
 
     update() {
-        this._calculator.calc(this._pixi.canvas, this._root, this._rects);
+        this._calculator.calc(this._pixi.canvas, this._section, this._rects);
+
         for (const [key, container] of this._containers) {
             const rect = this.getRect(key);
+            // console.log(rect, container);
             if (!(container instanceof Text)) {
                 container.width = rect.width;
                 container.height = rect.height;
@@ -68,6 +101,30 @@ export class Layout {
             container.y = rect.y;
         }
     }
+
+    private _createContainers = (root: Container, section: LayoutSection) => {
+        const { content, sections, block } = section;
+
+        if (content) {
+            const builder = this._contentBuilders.get(content.type);
+            if (!builder) {
+                throw new Error();
+            }
+
+            const key = section.key || `__${content.type}:${containerId++}`;
+            section.key = key;
+
+            const container = builder(content);
+            root.addChild(container);
+            this.attach(key, container);
+        }
+
+        if (block) {
+            this._createContainers(root, block);
+        } else if (sections) {
+            sections.forEach((s) => this._createContainers(root, s));
+        }
+    };
 }
 
 interface ILayoutCalculator {
@@ -78,6 +135,7 @@ interface ILayoutCalculator {
     ): void;
 }
 
+let containerId = 0;
 class LayoutCalculator implements ILayoutCalculator {
     private _htmlHelpers: Map<string, HTMLDivElement> = new Map();
 

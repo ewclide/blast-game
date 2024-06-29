@@ -2,20 +2,33 @@ import { LayoutSection } from './layout';
 
 const progressSection: LayoutSection = {
     block: {
-        key: 'progress-back',
         width: '500px',
         height: '130px',
         alignY: 'start',
         alighX: 'start',
         direction: 'vertical',
+        content: {
+            type: 'texture',
+            textureId: 'progress-back',
+        },
         sections: [
             {
                 height: '50px',
                 block: {
-                    key: 'progress-text',
                     width: '0px',
                     height: '0px',
                     alignY: 'end',
+                    content: {
+                        type: 'text',
+                        text: 'ПРОГРЕСС',
+                        anchor: { x: 0.5, y: 0.5 },
+                        style: {
+                            fill: 0xffffff,
+                            fontWeight: 'bolder',
+                            fontSize: 32,
+                            align: 'center',
+                        },
+                    },
                 },
             },
             {
@@ -23,6 +36,12 @@ const progressSection: LayoutSection = {
                     key: 'progress-bar',
                     width: '430px',
                     height: '35px',
+                    content: {
+                        type: 'progress',
+                        fill: 'progress-fill',
+                        bg: 'progress-bg',
+                        value: 50,
+                    },
                 },
             },
         ],
@@ -53,12 +72,16 @@ const infoSection: LayoutSection = {
 const pauseSection: LayoutSection = {
     width: '25%',
     block: {
+        key: 'pause',
         alighX: 'end',
         alignY: 'start',
         offsetY: '20px',
-        key: 'pause',
         width: '70px',
         height: '70px',
+        content: {
+            type: 'button',
+            textureId: 'pause-button',
+        },
     },
 };
 
@@ -71,8 +94,11 @@ const header: LayoutSection = {
 const scoresSection: LayoutSection = {
     height: '400px',
     block: {
-        key: 'scores-back',
         direction: 'vertical',
+        content: {
+            type: 'texture',
+            textureId: 'scores-back',
+        },
         sections: [
             {
                 height: '60%',
@@ -80,6 +106,17 @@ const scoresSection: LayoutSection = {
                     key: 'steps',
                     width: '0px',
                     height: '0px',
+                    content: {
+                        type: 'text',
+                        text: '37',
+                        anchor: { x: 0.5, y: 0.5 },
+                        style: {
+                            fill: 0xffffff,
+                            fontWeight: 'bolder',
+                            fontSize: 86,
+                            align: 'center',
+                        },
+                    },
                 },
             },
             {
@@ -90,6 +127,17 @@ const scoresSection: LayoutSection = {
                     height: '0px',
                     alignY: 'start',
                     offsetY: '50px',
+                    content: {
+                        type: 'text',
+                        text: 'ОЧКИ:\n0',
+                        anchor: { x: 0.5, y: 0.5 },
+                        style: {
+                            fill: 0xffffff,
+                            fontWeight: 'bolder',
+                            fontSize: 40,
+                            align: 'center',
+                        },
+                    },
                 },
             },
         ],
@@ -104,18 +152,30 @@ const boosterSection: LayoutSection = {
             block: {
                 key: 'booster-0',
                 height: '140px',
+                content: {
+                    type: 'button',
+                    textureId: 'booster-back',
+                },
             },
         },
         {
             block: {
                 key: 'booster-1',
                 height: '140px',
+                content: {
+                    type: 'button',
+                    textureId: 'booster-back',
+                },
             },
         },
         {
             block: {
                 key: 'booster-2',
                 height: '140px',
+                content: {
+                    type: 'button',
+                    textureId: 'booster-back',
+                },
             },
         },
     ],
@@ -123,7 +183,10 @@ const boosterSection: LayoutSection = {
 
 const bodyLeftSection: LayoutSection = {
     block: {
-        key: 'grid-back',
+        content: {
+            type: 'texture',
+            textureId: 'grid-back',
+        },
         width: '600px',
         height: '600px',
         alignY: 'start',
