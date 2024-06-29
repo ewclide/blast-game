@@ -1,4 +1,4 @@
-import { Application, Assets, Texture } from 'pixi.js';
+import { Application, Texture } from 'pixi.js';
 import { Grid, GridOptions, TileTypeDescriptor } from './grid';
 import { ResourceManager } from './resource';
 import { InputSystem } from './input';
@@ -33,6 +33,7 @@ export class Game {
     readonly ui: UI;
 
     constructor(pixi: Application, options: GameOptions) {
+        this.options = options;
         this.time = new TimeSystem();
         this.input = new InputSystem(pixi.canvas);
         this.grid = new Grid(options.grid);
@@ -42,7 +43,6 @@ export class Game {
         this.resouces.register({
             textures: Texture,
         });
-        this.options = options;
 
         // TODO: pass props (like grid size)
         this.ui = new UI(pixi, this.resouces);
