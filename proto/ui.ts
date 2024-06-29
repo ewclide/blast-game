@@ -91,12 +91,17 @@ export class UI {
 
         const steps = this.layout.getContainer('steps') as Text;
         const scores = this.layout.getContainer('scores') as Text;
+        const maxScores = this.layout.getContainer('max-scores') as Text;
         const progress = this.layout.getContainer(
             'progress-bar'
         ) as ProgressBar;
 
         // Sync store with ui
         const { store } = this;
+
+        store.subscribe('maxScores', (value: number) => {
+            maxScores.text = value;
+        });
 
         store.subscribe('scores', (value: number) => {
             scores.text = `ОЧКИ:\n${value}`;

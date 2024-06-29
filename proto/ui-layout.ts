@@ -90,10 +90,11 @@ const infoSection: LayoutSection = {
                 width: '150px',
                 height: '60px',
                 content: {
-                    type: 'button',
+                    type: 'texture',
                     textureId: 'red-button',
                 },
                 block: {
+                    id: 'max-scores',
                     width: '0px',
                     height: '0px',
                     content: {
