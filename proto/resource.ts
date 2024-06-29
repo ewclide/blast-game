@@ -5,13 +5,14 @@ export type ResourceConstructor<T extends Resource = Resource> = new (
 ) => T;
 
 // TODO: font, sound ...
-export type Resource = Texture;
-
-export type TextureName = string;
-export type TexturePath = string;
+export type Resource = Texture | FontFace;
+export type ResourceName = string;
+export type ResourcePath = string;
+export type ResourceTypes = Record<string, ResourceConstructor>;
 
 export interface ResourceConfig {
-    textures: Record<TextureName, TexturePath>;
+    textures?: Record<ResourceName, ResourcePath>;
+    fonts?: Record<ResourceName, ResourcePath>;
 }
 
 export class ResourceManager {
@@ -24,7 +25,7 @@ export class ResourceManager {
         this._config = config;
     }
 
-    register(resourceTypes: Record<string, ResourceConstructor>) {
+    register(resourceTypes: ResourceTypes) {
         for (const [type, builder] of Object.entries(resourceTypes)) {
             if (this._resourceTypes.has(type)) {
                 throw new Error();
@@ -51,6 +52,9 @@ export class ResourceManager {
         let uid = 0;
         for (const [type, builder] of this._resourceTypes) {
             const resources = this._config[type as keyof ResourceConfig];
+            if (resources === undefined) {
+                continue;
+            }
             for (const [name, path] of Object.entries(resources)) {
                 const alias = name + uid++;
                 aliases.set(alias, { name, builder });

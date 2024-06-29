@@ -12,6 +12,7 @@ const progresText = {
     style: {
         fill: 0xffffff,
         fontWeight: 'bolder',
+        fontFamily: 'marvin',
         fontSize: 32,
         align: 'center',
     },
@@ -31,7 +32,8 @@ const stepsContainer = {
     style: {
         fill: 0xffffff,
         fontWeight: 'bolder',
-        fontSize: 86,
+        fontFamily: 'marvin',
+        fontSize: 75,
         align: 'center',
     },
 };
@@ -43,7 +45,34 @@ const scoresContainer = {
     style: {
         fill: 0xffffff,
         fontWeight: 'bolder',
-        fontSize: 40,
+        fontFamily: 'marvin',
+        fontSize: 36,
+        align: 'center',
+    },
+};
+
+const maxScoresContainer = {
+    type: 'text',
+    text: '6500',
+    anchor: { x: 0.5, y: 0.5 },
+    style: {
+        fill: 0xffffff,
+        fontWeight: 'bolder',
+        fontFamily: 'marvin',
+        fontSize: 30,
+        align: 'center',
+    },
+};
+
+const shuffleButton = {
+    type: 'text',
+    text: 'перемешать (5)',
+    anchor: { x: 0.5, y: 0.5 },
+    style: {
+        fill: 0xffffff,
+        fontWeight: 'bolder',
+        fontFamily: 'marvin',
+        fontSize: 18,
         align: 'center',
     },
 };
@@ -97,17 +126,7 @@ const infoSection: LayoutSection = {
                     id: 'max-scores',
                     width: '0px',
                     height: '0px',
-                    content: {
-                        type: 'text',
-                        text: '6500',
-                        anchor: { x: 0.5, y: 0.5 },
-                        style: {
-                            fill: 0xffffff,
-                            fontWeight: 'bolder',
-                            fontSize: 38,
-                            align: 'center',
-                        },
-                    },
+                    content: maxScoresContainer,
                 },
             },
         },
@@ -124,17 +143,7 @@ const infoSection: LayoutSection = {
                 block: {
                     width: '0px',
                     height: '0px',
-                    content: {
-                        type: 'text',
-                        text: 'перемешать (5)',
-                        anchor: { x: 0.5, y: 0.5 },
-                        style: {
-                            fill: 0xffffff,
-                            fontWeight: 'bolder',
-                            fontSize: 20,
-                            align: 'center',
-                        },
-                    },
+                    content: shuffleButton,
                 },
             },
         },

@@ -1,6 +1,5 @@
-import { Application } from 'pixi.js';
+import { Application, Texture } from 'pixi.js';
 import { Game } from './game';
-import { UI } from './ui';
 
 export class App {
     private _game!: Game;
@@ -24,21 +23,30 @@ export class App {
                 sizeY: 10,
                 minBatchSize: 2,
             },
+            assetTypes: {
+                fonts: FontFace,
+                textures: Texture,
+            },
             assets: {
-                'tile-blue': 'images/tile-blue.png',
-                'tile-red': 'images/tile-red.png',
-                'tile-pink': 'images/tile-pink.png',
-                'tile-yellow': 'images/tile-yellow.png',
-                'tile-green': 'images/tile-green.png',
-                'grid-back': 'images/grid-back.png',
-                'scores-back': 'images/scores-back.png',
-                'booster-back': 'images/booster-back.png',
-                'progress-back': 'images/progress-back.png',
-                'progress-fill': 'images/progress-fill.png',
-                'progress-bg': 'images/progress-bg.png',
-                'pause-button': 'images/pause-button.png',
-                'pink-button': 'images/pink-button.png',
-                'red-button': 'images/red-button.png',
+                fonts: {
+                    marvin: 'fonts/marvin.woff2',
+                },
+                textures: {
+                    'tile-blue': 'images/tile-blue.png',
+                    'tile-red': 'images/tile-red.png',
+                    'tile-pink': 'images/tile-pink.png',
+                    'tile-yellow': 'images/tile-yellow.png',
+                    'tile-green': 'images/tile-green.png',
+                    'grid-back': 'images/grid-back.png',
+                    'scores-back': 'images/scores-back.png',
+                    'booster-back': 'images/booster-back.png',
+                    'progress-back': 'images/progress-back.png',
+                    'progress-fill': 'images/progress-fill.png',
+                    'progress-bg': 'images/progress-bg.png',
+                    'pause-button': 'images/pause-button.png',
+                    'pink-button': 'images/pink-button.png',
+                    'red-button': 'images/red-button.png',
+                },
             },
             tileTypes: {
                 red: 'tile-red',
