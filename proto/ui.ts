@@ -19,6 +19,7 @@ export class UI {
     readonly container: Container;
     readonly layout: Layout;
     readonly resouces: ResourceManager;
+    readonly store: Store<GameStore>;
 
     constructor(
         pixi: Application,
@@ -28,13 +29,10 @@ export class UI {
         const container = new Container();
         pixi.stage.addChild(container);
 
+        this.store = store;
         this.container = container;
         this.resouces = resouces;
         this.layout = new Layout(pixi, uiLayout);
-
-        store.subscribe('scores', (value) => {
-            console.log('value', value);
-        });
 
         window.addEventListener('resize', this._handleOnResize);
     }
@@ -90,6 +88,17 @@ export class UI {
         );
 
         this.layout.create(this.container);
+
+        const steps = this.layout.getContainer('steps') as Text;
+        const scores = this.layout.getContainer('scores') as Text;
+
+        this.store.subscribe('scores', (value: string) => {
+            scores.text = `ОЧКИ:\n${value}`;
+        });
+
+        this.store.subscribe('steps', (value: string) => {
+            steps.text = value;
+        });
     }
 
     private _handleOnResize = () => {
