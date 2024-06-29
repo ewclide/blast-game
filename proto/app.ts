@@ -37,6 +37,8 @@ export class App {
                 'progress-fill': 'images/progress-fill.png',
                 'progress-bg': 'images/progress-bg.png',
                 'pause-button': 'images/pause-button.png',
+                'pink-button': 'images/pink-button.png',
+                'red-button': 'images/red-button.png',
             },
             tileTypes: {
                 red: 'tile-red',

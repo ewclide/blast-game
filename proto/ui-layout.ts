@@ -1,5 +1,53 @@
 import { LayoutSection } from './layout';
 
+const pauseButton = {
+    type: 'button',
+    textureId: 'pause-button',
+};
+
+const progresText = {
+    type: 'text',
+    text: 'ПРОГРЕСС',
+    anchor: { x: 0.5, y: 0.5 },
+    style: {
+        fill: 0xffffff,
+        fontWeight: 'bolder',
+        fontSize: 32,
+        align: 'center',
+    },
+};
+
+const progressContainer = {
+    type: 'progress',
+    fill: 'progress-fill',
+    bg: 'progress-bg',
+    value: 50,
+};
+
+const stepsContainer = {
+    type: 'text',
+    text: '37',
+    anchor: { x: 0.5, y: 0.5 },
+    style: {
+        fill: 0xffffff,
+        fontWeight: 'bolder',
+        fontSize: 86,
+        align: 'center',
+    },
+};
+
+const scoresContainer = {
+    type: 'text',
+    text: 'ОЧКИ:\n0',
+    anchor: { x: 0.5, y: 0.5 },
+    style: {
+        fill: 0xffffff,
+        fontWeight: 'bolder',
+        fontSize: 40,
+        align: 'center',
+    },
+};
+
 const progressSection: LayoutSection = {
     block: {
         width: '500px',
@@ -18,17 +66,7 @@ const progressSection: LayoutSection = {
                     width: '0px',
                     height: '0px',
                     alignY: 'end',
-                    content: {
-                        type: 'text',
-                        text: 'ПРОГРЕСС',
-                        anchor: { x: 0.5, y: 0.5 },
-                        style: {
-                            fill: 0xffffff,
-                            fontWeight: 'bolder',
-                            fontSize: 32,
-                            align: 'center',
-                        },
-                    },
+                    content: progresText,
                 },
             },
             {
@@ -36,12 +74,7 @@ const progressSection: LayoutSection = {
                     id: 'progress-bar',
                     width: '430px',
                     height: '35px',
-                    content: {
-                        type: 'progress',
-                        fill: 'progress-fill',
-                        bg: 'progress-bg',
-                        value: 50,
-                    },
+                    content: progressContainer,
                 },
             },
         ],
@@ -49,24 +82,62 @@ const progressSection: LayoutSection = {
 };
 
 const infoSection: LayoutSection = {
-    block: {
-        width: '400px',
-        height: '70px',
-        alignY: 'start',
-        offsetY: '20px',
-        sections: [
-            {
+    sections: [
+        {
+            block: {
+                alignY: 'start',
+                offsetY: '25px',
+                width: '150px',
+                height: '60px',
+                content: {
+                    type: 'button',
+                    textureId: 'red-button',
+                },
                 block: {
-                    id: 'total-scores',
+                    width: '0px',
+                    height: '0px',
+                    content: {
+                        type: 'text',
+                        text: '6500',
+                        anchor: { x: 0.5, y: 0.5 },
+                        style: {
+                            fill: 0xffffff,
+                            fontWeight: 'bolder',
+                            fontSize: 38,
+                            align: 'center',
+                        },
+                    },
                 },
             },
-            {
+        },
+        {
+            block: {
+                alignY: 'start',
+                offsetY: '25px',
+                width: '200px',
+                height: '60px',
+                content: {
+                    type: 'button',
+                    textureId: 'pink-button',
+                },
                 block: {
-                    id: 'shuffles',
+                    width: '0px',
+                    height: '0px',
+                    content: {
+                        type: 'text',
+                        text: 'перемешать (5)',
+                        anchor: { x: 0.5, y: 0.5 },
+                        style: {
+                            fill: 0xffffff,
+                            fontWeight: 'bolder',
+                            fontSize: 20,
+                            align: 'center',
+                        },
+                    },
                 },
             },
-        ],
-    },
+        },
+    ],
 };
 
 const pauseSection: LayoutSection = {
@@ -78,10 +149,7 @@ const pauseSection: LayoutSection = {
         offsetY: '20px',
         width: '70px',
         height: '70px',
-        content: {
-            type: 'button',
-            textureId: 'pause-button',
-        },
+        content: pauseButton,
     },
 };
 
@@ -105,17 +173,7 @@ const scoresSection: LayoutSection = {
                     id: 'steps',
                     width: '0px',
                     height: '0px',
-                    content: {
-                        type: 'text',
-                        text: '37',
-                        anchor: { x: 0.5, y: 0.5 },
-                        style: {
-                            fill: 0xffffff,
-                            fontWeight: 'bolder',
-                            fontSize: 86,
-                            align: 'center',
-                        },
-                    },
+                    content: stepsContainer,
                 },
             },
             {
@@ -126,17 +184,7 @@ const scoresSection: LayoutSection = {
                     height: '0px',
                     alignY: 'start',
                     offsetY: '50px',
-                    content: {
-                        type: 'text',
-                        text: 'ОЧКИ:\n0',
-                        anchor: { x: 0.5, y: 0.5 },
-                        style: {
-                            fill: 0xffffff,
-                            fontWeight: 'bolder',
-                            fontSize: 40,
-                            align: 'center',
-                        },
-                    },
+                    content: scoresContainer,
                 },
             },
         ],
@@ -215,7 +263,6 @@ const body: LayoutSection = {
 };
 
 export const uiLayout: LayoutSection = {
-    direction: 'vertical',
     block: {
         width: '1100px',
         direction: 'vertical',
