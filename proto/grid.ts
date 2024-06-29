@@ -1,4 +1,5 @@
 import { Circle, Container, Graphics, Point, Texture } from 'pixi.js';
+import { Easing, Tween } from '@tweenjs/tween.js';
 import { clamp, randi } from './utils';
 import { TimeSystem } from './time';
 import { ClickData } from './input';
@@ -90,6 +91,7 @@ export class Grid {
     private _cellSize = new Point();
     private _blockTapping: boolean = false;
     private _tileTypes: TileTypeDescriptor[] = [];
+    private _tweens: Map<Tile, Tween<any>> = new Map();
     private _tilesToFall = new Set<{
         tile: Tile;
         dst: Cell;
@@ -239,8 +241,44 @@ export class Grid {
         });
     }
 
+    async playDestroyAnimation(tile: Tile): Promise<void> {
+        return new Promise((resolve) => {
+            const { container } = tile;
+            container.zIndex = 100;
+
+            const tween = new Tween({
+                scale: 1,
+                alpha: 1,
+            })
+                .to({
+                    scale: 0,
+                    alpha: 0,
+                })
+                .easing(Easing.Quartic.In)
+                .delay(Math.random() * 120)
+                .duration(80)
+                .onUpdate(({ scale, alpha }) => {
+                    container.position.x += 2;
+                    container.position.y += 2;
+                    container.scale = scale;
+                    container.alpha = alpha;
+                })
+                .onComplete(() => {
+                    this._tweens.delete(tile);
+                    resolve();
+                })
+                .start();
+
+            this._tweens.set(tile, tween);
+        });
+    }
+
     update(time: TimeSystem) {
         const dt = time.delta;
+
+        for (const tween of this._tweens.values()) {
+            tween.update();
+        }
 
         for (const tileData of this._tilesToFall) {
             const { tile, dst, delay } = tileData;
@@ -319,7 +357,7 @@ export class Grid {
                     this._tilesToFall.add({
                         tile,
                         dst,
-                        delay: 0,
+                        delay: 0.2,
                     });
                 }
             }
@@ -337,7 +375,7 @@ export class Grid {
                 this._tilesToFall.add({
                     tile,
                     dst,
-                    delay: 0,
+                    delay: 0.2,
                 });
             }
         }
@@ -401,7 +439,9 @@ export class Grid {
 
     destroyTile(tile: Tile) {
         this._tiles.delete(tile.id);
-        this.container.removeChild(tile.container);
+        this.playDestroyAnimation(tile).then(() => {
+            this.container.removeChild(tile.container);
+        });
     }
 
     private _getCellByRowCol(row: number, col: number): Cell {

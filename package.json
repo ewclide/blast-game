@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@pixi/ui": "^2.1.2",
+    "@tweenjs/tween.js": "^23.1.2",
     "pixi.js": "^8.2.1",
     "typescript": "^5.2.2",
     "vite": "^5.3.1"
