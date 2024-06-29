@@ -33,7 +33,7 @@ const progressSection: LayoutSection = {
             },
             {
                 block: {
-                    key: 'progress-bar',
+                    id: 'progress-bar',
                     width: '430px',
                     height: '35px',
                     content: {
@@ -57,12 +57,12 @@ const infoSection: LayoutSection = {
         sections: [
             {
                 block: {
-                    key: 'total-scores',
+                    id: 'total-scores',
                 },
             },
             {
                 block: {
-                    key: 'shuffles',
+                    id: 'shuffles',
                 },
             },
         ],
@@ -72,7 +72,7 @@ const infoSection: LayoutSection = {
 const pauseSection: LayoutSection = {
     width: '25%',
     block: {
-        key: 'pause',
+        id: 'pause',
         alighX: 'end',
         alignY: 'start',
         offsetY: '20px',
@@ -86,7 +86,6 @@ const pauseSection: LayoutSection = {
 };
 
 const header: LayoutSection = {
-    key: 'header',
     height: '250px',
     sections: [progressSection, infoSection, pauseSection],
 };
@@ -103,7 +102,7 @@ const scoresSection: LayoutSection = {
             {
                 height: '60%',
                 block: {
-                    key: 'steps',
+                    id: 'steps',
                     width: '0px',
                     height: '0px',
                     content: {
@@ -122,7 +121,7 @@ const scoresSection: LayoutSection = {
             {
                 height: '40%',
                 block: {
-                    key: 'scores',
+                    id: 'scores',
                     width: '0px',
                     height: '0px',
                     alignY: 'start',
@@ -150,7 +149,7 @@ const boosterSection: LayoutSection = {
     sections: [
         {
             block: {
-                key: 'booster-0',
+                id: 'booster-0',
                 height: '140px',
                 content: {
                     type: 'button',
@@ -160,7 +159,7 @@ const boosterSection: LayoutSection = {
         },
         {
             block: {
-                key: 'booster-1',
+                id: 'booster-1',
                 height: '140px',
                 content: {
                     type: 'button',
@@ -170,7 +169,7 @@ const boosterSection: LayoutSection = {
         },
         {
             block: {
-                key: 'booster-2',
+                id: 'booster-2',
                 height: '140px',
                 content: {
                     type: 'button',
@@ -192,7 +191,7 @@ const bodyLeftSection: LayoutSection = {
         alignY: 'start',
         alighX: 'start',
         block: {
-            key: 'grid',
+            id: 'grid',
             width: '550px',
             height: '550px',
         },
@@ -211,7 +210,6 @@ const bodyRightSection: LayoutSection = {
 };
 
 const body: LayoutSection = {
-    key: 'body',
     direction: 'horizontal',
     sections: [bodyLeftSection, bodyRightSection],
 };
