@@ -1,11 +1,11 @@
 import { Circle, Container, Graphics, Point, Texture } from 'pixi.js';
 import { Easing, Tween } from '@tweenjs/tween.js';
+import { Box, testCircleBox } from './math';
 import { TimeSystem } from './time';
 import { ClickData } from './input';
 import { TileType } from './game';
 import { randi } from './utils';
 import { Tile } from './tile';
-import { Box } from './math';
 
 export interface GridOptions {
     width: number;
