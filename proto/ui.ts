@@ -1,17 +1,28 @@
 import { Button, ProgressBar } from '@pixi/ui';
-import { Application, Container, Graphics, Sprite, Text } from 'pixi.js';
+import {
+    Application,
+    Container,
+    Graphics,
+    Sprite,
+    Text,
+    Texture,
+} from 'pixi.js';
 import { Layout } from './layout';
 import { InternalAssets } from './game';
 import { uiLayout } from './ui-layout';
+import { ResourceManager } from './resource';
 
 export class UI {
     readonly container: Container;
     readonly layout: Layout;
+    readonly resouces: ResourceManager;
 
-    constructor(pixi: Application) {
+    constructor(pixi: Application, resouces: ResourceManager) {
         const container = new Container();
         pixi.stage.addChild(container);
+
         this.container = container;
+        this.resouces = resouces;
         this.layout = new Layout(pixi, uiLayout);
 
         window.addEventListener('resize', this._handleOnResize);
@@ -21,41 +32,16 @@ export class UI {
         window.removeEventListener('resize', this._handleOnResize);
     }
 
-    create(assets: InternalAssets) {
-        const gridBackTexture = assets.textures.get('grid-back');
-        if (gridBackTexture === undefined) {
-            throw new Error();
-        }
+    create() {
+        const { resouces } = this;
 
-        const scoresBackTexture = assets.textures.get('scores-back');
-        if (scoresBackTexture === undefined) {
-            throw new Error();
-        }
-
-        const boosterBackTexture = assets.textures.get('booster-back');
-        if (boosterBackTexture === undefined) {
-            throw new Error();
-        }
-
-        const progressBackTexture = assets.textures.get('progress-back');
-        if (progressBackTexture === undefined) {
-            throw new Error();
-        }
-
-        const progressFillTexture = assets.textures.get('progress-fill');
-        if (progressFillTexture === undefined) {
-            throw new Error();
-        }
-
-        const progressBgTexture = assets.textures.get('progress-bg');
-        if (progressBgTexture === undefined) {
-            throw new Error();
-        }
-
-        const pauseButtonTexture = assets.textures.get('pause-button');
-        if (pauseButtonTexture === undefined) {
-            throw new Error();
-        }
+        const gridBackTexture = resouces.get(Texture, 'grid-back');
+        const scoresBackTexture = resouces.get(Texture, 'scores-back');
+        const boosterBackTexture = resouces.get(Texture, 'booster-back');
+        const progressBackTexture = resouces.get(Texture, 'progress-back');
+        const progressFillTexture = resouces.get(Texture, 'progress-fill');
+        const progressBgTexture = resouces.get(Texture, 'progress-bg');
+        const pauseButtonTexture = resouces.get(Texture, 'pause-button');
 
         const scoresBack = new Graphics();
         scoresBack.texture(scoresBackTexture);

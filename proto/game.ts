@@ -1,5 +1,6 @@
 import { Application, Assets, Texture } from 'pixi.js';
-import { Grid, GridOptions } from './grid';
+import { Grid, GridOptions, TileTypeDescriptor } from './grid';
+import { ResourceManager } from './resource';
 import { InputSystem } from './input';
 import { TimeSystem } from './time';
 import { UI } from './ui';
@@ -28,51 +29,40 @@ export class Game {
     readonly input: InputSystem;
     readonly grid: Grid;
     readonly options: GameOptions;
+    readonly resouces: ResourceManager;
     readonly ui: UI;
-    private _assets!: InternalAssets;
 
     constructor(pixi: Application, options: GameOptions) {
         this.time = new TimeSystem();
         this.input = new InputSystem(pixi.canvas);
         this.grid = new Grid(options.grid);
+        this.resouces = new ResourceManager({
+            textures: options.assets,
+        });
+        this.resouces.register({
+            textures: Texture,
+        });
         this.options = options;
 
         // TODO: pass props (like grid size)
-        this.ui = new UI(pixi);
+        this.ui = new UI(pixi, this.resouces);
 
         this.ui.layout.attach('grid', this.grid.container);
 
         pixi.stage.addChild(this.grid.container);
     }
 
-    private async _loadAssets() {
-        const textures = new Map<ImageName, Texture>();
-        for (const [name, path] of Object.entries(this.options.assets)) {
-            const texture = await Assets.load(path);
-            textures.set(name, texture);
-        }
-
-        const tileTypes = new Map<TileType, Texture>();
-        for (const [type, image] of Object.entries(this.options.tileTypes)) {
-            const texture = textures.get(image);
-            if (texture === undefined) {
-                throw new Error();
-            }
-
-            tileTypes.set(type, texture);
-        }
-
-        this._assets = {
-            tileTypes,
-            textures,
-        };
-    }
-
     async start() {
-        await this._loadAssets();
+        await this.resouces.load();
 
-        this.grid.create(this._assets);
-        this.ui.create(this._assets);
+        const tiles: TileTypeDescriptor[] = [];
+        for (const [type, image] of Object.entries(this.options.tileTypes)) {
+            const texture = this.resouces.get(Texture, image);
+            tiles.push({ type, texture });
+        }
+
+        this.grid.create(tiles);
+        this.ui.create();
     }
 
     update = () => {

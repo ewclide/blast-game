@@ -28,7 +28,7 @@ interface Cell {
     neighbors: number[];
 }
 
-interface TileTypeDescriptor {
+export interface TileTypeDescriptor {
     type: TileType;
     texture: Texture;
 }
@@ -112,11 +112,12 @@ export class Grid {
         this.minBatchSize = options.minBatchSize;
     }
 
-    create(assets: InternalAssets) {
+    create(tileTypes: TileTypeDescriptor[]) {
         const { sizeY, sizeX } = this;
         const cellWidth = this.fieldWidth / sizeX;
         const cellHeight = this.fieldHeight / sizeY;
         this._cellSize.set(cellWidth, cellHeight);
+        this._tileTypes = tileTypes;
 
         const clipMask = new Graphics();
         const topPadding = 10;
@@ -132,12 +133,6 @@ export class Grid {
         this.container.mask = clipMask;
         this.container.interactive = true;
         this.container.cursor = 'pointer';
-
-        // Prepare tile descriptors
-        this._tileTypes = [...assets.tileTypes].map(([type, texture]) => ({
-            type,
-            texture,
-        }));
 
         const encodeWithBorderCheck = (row: number, col: number) => {
             // Check field restrictions additionally
