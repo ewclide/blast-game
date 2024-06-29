@@ -1,10 +1,11 @@
 import { Circle, Container, Graphics, Point, Texture } from 'pixi.js';
 import { Easing, Tween } from '@tweenjs/tween.js';
-import { clamp, randi } from './utils';
 import { TimeSystem } from './time';
 import { ClickData } from './input';
 import { TileType } from './game';
+import { randi } from './utils';
 import { Tile } from './tile';
+import { Box } from './math';
 
 export interface GridOptions {
     width: number;
@@ -37,53 +38,6 @@ export interface TileTypeDescriptor {
 const TILE_ACCEL = 3000;
 const encodeCoords = (row: number, col: number) => (row << 16) | col;
 const decodeCoords = (mask: number) => [mask >> 16, mask & 0xffff];
-
-export class Box {
-    readonly min: Point = new Point();
-    readonly max: Point = new Point();
-
-    get extents(): number[] {
-        const { min, max } = this;
-        const w = Math.abs(max.x - min.x) / 2;
-        const h = Math.abs(max.y - min.y) / 2;
-
-        return [min.x + w, min.y + h, w, h];
-    }
-
-    containPoint(point: Point): boolean {
-        const { min, max } = this;
-        const { x, y } = point;
-        return x >= min.x && x <= max.x && y >= min.y && y <= max.y;
-    }
-
-    setPositionSize(x: number, y: number, width: number, height: number) {
-        this.min.x = x;
-        this.min.y = y;
-        this.max.x = x + width;
-        this.max.y = y + height;
-    }
-}
-
-function vectorLength(vector: Point): number {
-    const { x, y } = vector;
-    return Math.sqrt(x * x + y * y);
-}
-
-function testCircleBox(circle: Circle, aabb: Box): boolean {
-    const center = new Point(circle.x, circle.y);
-    const [bx, by, boxHalfWidth, boxHalfHeight] = aabb.extents;
-    const difference = new Point(center.x - bx, center.y - by);
-    const clamped = new Point(
-        clamp(difference.x, -boxHalfWidth, boxHalfWidth),
-        clamp(difference.y, -boxHalfHeight, boxHalfHeight)
-    );
-    const closest = new Point(bx + clamped.x, by + clamped.y);
-
-    difference.x = closest.x - center.x;
-    difference.y = closest.y - center.y;
-
-    return vectorLength(difference) < circle.radius;
-}
 
 export class Grid {
     private _tiles = new Map<number, Tile>();
