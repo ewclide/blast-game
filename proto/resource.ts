@@ -15,10 +15,10 @@ export interface ResourceConfig {
 }
 
 export class ResourceManager {
+    private _config: ResourceConfig;
     private _resourceTypes: Map<string, ResourceConstructor> = new Map();
     private _resourcesByType: Map<ResourceConstructor, Map<string, Resource>> =
         new Map();
-    private _config: ResourceConfig;
 
     constructor(config: ResourceConfig) {
         this._config = config;
@@ -43,7 +43,7 @@ export class ResourceManager {
         return resource as R;
     }
 
-    async load() {
+    async load(progress: (v: number) => void = () => {}) {
         type AliasData = { name: string; builder: ResourceConstructor };
         const aliases = new Map<string, AliasData>();
         const bundle: any[] = [];
@@ -59,9 +59,7 @@ export class ResourceManager {
         }
 
         Assets.addBundle('main', bundle);
-        await Assets.loadBundle('main', (...args) => {
-            console.log(args);
-        });
+        await Assets.loadBundle('main', progress);
 
         for (const [alias, data] of aliases) {
             const resouce = Assets.cache.get(alias);
