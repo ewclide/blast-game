@@ -1,8 +1,8 @@
 import { Circle, Container, Graphics, Point, Texture } from 'pixi.js';
-import { InternalAssets, TileType } from './game';
 import { clamp, randi } from './utils';
 import { TimeSystem } from './time';
 import { ClickData } from './input';
+import { TileType } from './game';
 import { Tile } from './tile';
 
 export interface GridOptions {
@@ -102,6 +102,8 @@ export class Grid {
     readonly sizeY: number;
     readonly minBatchSize: number;
     readonly container: Container;
+
+    onDestroyTiles: (tiles: Tile[]) => void = () => {};
 
     constructor(options: GridOptions) {
         this.container = new Container();
@@ -282,12 +284,18 @@ export class Grid {
         // const cells = this.blowUpTiles(cell, 220);
         if (cells.size >= this.minBatchSize) {
             this._blockTapping = true;
+
+            const tiles: Tile[] = [];
             for (const cell of cells) {
-                if (cell.tile !== null) {
-                    this.destroyTile(cell.tile);
+                const { tile } = cell;
+                if (tile !== null) {
+                    this.destroyTile(tile);
+                    tiles.push(tile);
                 }
                 cell.tile = null;
             }
+
+            this.onDestroyTiles(tiles);
         }
 
         // Check tiles to fall
