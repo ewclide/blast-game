@@ -29,6 +29,7 @@ export interface InternalAssets {
 export interface GameStore {
     scores: number;
     steps: number;
+    maxScores: number;
 }
 
 export class Game {
@@ -44,8 +45,10 @@ export class Game {
         this.options = options;
         this.store = new Store<GameStore>({
             scores: 0,
-            steps: 50,
+            steps: 0,
+            maxScores: 0,
         });
+
         this.time = new TimeSystem();
         this.input = new InputSystem(pixi.canvas);
         this.grid = new Grid(options.grid);
@@ -82,6 +85,12 @@ export class Game {
 
         this.grid.create(tiles);
         this.ui.create();
+
+        this.store.setState({
+            scores: 0,
+            steps: 50,
+            maxScores: 100,
+        });
     }
 
     update = () => {

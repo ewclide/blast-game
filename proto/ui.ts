@@ -91,14 +91,27 @@ export class UI {
 
         const steps = this.layout.getContainer('steps') as Text;
         const scores = this.layout.getContainer('scores') as Text;
+        const progress = this.layout.getContainer(
+            'progress-bar'
+        ) as ProgressBar;
 
-        this.store.subscribe('scores', (value: string) => {
+        // Sync store with ui
+        const { store } = this;
+
+        store.subscribe('scores', (value: number) => {
             scores.text = `ОЧКИ:\n${value}`;
         });
 
-        this.store.subscribe('steps', (value: string) => {
+        store.subscribe('steps', (value: number) => {
             steps.text = value;
         });
+
+        store.subscribe(
+            (state) => (state.scores / state.maxScores) * 100,
+            (value) => {
+                progress.progress = value;
+            }
+        );
     }
 
     private _handleOnResize = () => {
