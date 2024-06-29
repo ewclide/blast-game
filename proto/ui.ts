@@ -11,20 +11,30 @@ import {
 
 import { Layout, LayoutContentDescriptor } from './layout';
 import { ResourceManager } from './resource';
+import { GameStore } from './game';
 import { uiLayout } from './ui-layout';
+import { Store } from './store';
 
 export class UI {
     readonly container: Container;
     readonly layout: Layout;
     readonly resouces: ResourceManager;
 
-    constructor(pixi: Application, resouces: ResourceManager) {
+    constructor(
+        pixi: Application,
+        resouces: ResourceManager,
+        store: Store<GameStore>
+    ) {
         const container = new Container();
         pixi.stage.addChild(container);
 
         this.container = container;
         this.resouces = resouces;
         this.layout = new Layout(pixi, uiLayout);
+
+        store.subscribe('scores', (value) => {
+            console.log('value', value);
+        });
 
         window.addEventListener('resize', this._handleOnResize);
     }

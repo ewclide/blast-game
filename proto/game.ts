@@ -3,6 +3,8 @@ import { Grid, GridOptions, TileTypeDescriptor } from './grid';
 import { ResourceManager } from './resource';
 import { InputSystem } from './input';
 import { TimeSystem } from './time';
+import { Store } from './store';
+import { Tile } from './tile';
 import { UI } from './ui';
 
 export interface AssetsDescriptor {
@@ -24,16 +26,26 @@ export interface InternalAssets {
     textures: Map<string, Texture>;
 }
 
+export interface GameStore {
+    scores: number;
+    steps: number;
+}
+
 export class Game {
     readonly time: TimeSystem;
     readonly input: InputSystem;
     readonly grid: Grid;
     readonly options: GameOptions;
     readonly resouces: ResourceManager;
+    readonly store: Store<GameStore>;
     readonly ui: UI;
 
     constructor(pixi: Application, options: GameOptions) {
         this.options = options;
+        this.store = new Store<GameStore>({
+            scores: 0,
+            steps: 50,
+        });
         this.time = new TimeSystem();
         this.input = new InputSystem(pixi.canvas);
         this.grid = new Grid(options.grid);
@@ -45,9 +57,16 @@ export class Game {
         });
 
         // TODO: pass props (like grid size)
-        this.ui = new UI(pixi, this.resouces);
-
+        this.ui = new UI(pixi, this.resouces, this.store);
         this.ui.layout.attach('grid', this.grid.container);
+
+        this.grid.onDestroyTiles = (tiles: Tile[]) => {
+            const { scores, steps } = this.store.state;
+            this.store.setState({
+                scores: scores + tiles.length,
+                steps: steps - 1,
+            });
+        };
 
         pixi.stage.addChild(this.grid.container);
     }
