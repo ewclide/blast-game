@@ -15,7 +15,7 @@ export interface LayoutContent extends LayoutContentDescriptor {
 }
 
 export interface LayoutSection {
-    key?: string;
+    id?: string;
     width?: string;
     height?: string;
     direction?: LayoutDirection;
@@ -38,6 +38,11 @@ export interface LayoutBlock extends LayoutSection {
     offsetY?: string;
 }
 
+export interface LayoutElement {
+    rect: LayoutRect;
+    content: Container | null;
+}
+
 export class Layout {
     private _pixi: Application;
     private _rects: Map<string, LayoutRect> = new Map();
@@ -50,14 +55,11 @@ export class Layout {
         this._pixi = pixi;
         this._section = root;
         this._calculator = new LayoutCalculator();
-        this._calculator.calc(pixi.canvas, root, this._rects);
-        console.log(this);
     }
 
     create(root: Container) {
         this._createContainers(root, this._section);
         this.update();
-        console.log(this);
     }
 
     regContentBuilder<T extends LayoutContentDescriptor>(
@@ -71,28 +73,35 @@ export class Layout {
         this._contentBuilders.set(type, builder);
     }
 
-    getRect(key: string): LayoutRect {
-        const rect = this._rects.get(key);
+    getContainer(id: string): Container {
+        const container = this._containers.get(id);
+        if (container === undefined) {
+            throw new Error(`Unknown layout id ${id}`);
+        }
+        return container;
+    }
+
+    getRect(id: string): LayoutRect {
+        const rect = this._rects.get(id);
         if (rect === undefined) {
-            throw new Error(`Unknown layout key ${key}`);
+            throw new Error(`Unknown layout id ${id}`);
         }
         return rect;
     }
 
-    attach(key: string, container: Container) {
-        if (this._containers.has(key)) {
+    attach(id: string, container: Container) {
+        if (this._containers.has(id)) {
             throw new Error();
         }
 
-        this._containers.set(key, container);
+        this._containers.set(id, container);
     }
 
     update() {
         this._calculator.calc(this._pixi.canvas, this._section, this._rects);
 
-        for (const [key, container] of this._containers) {
-            const rect = this.getRect(key);
-            // console.log(rect, container);
+        for (const [id, container] of this._containers) {
+            const rect = this.getRect(id);
             if (!(container instanceof Text)) {
                 container.width = rect.width;
                 container.height = rect.height;
@@ -111,12 +120,12 @@ export class Layout {
                 throw new Error();
             }
 
-            const key = section.key || `__${content.type}:${containerId++}`;
-            section.key = key;
+            const id = section.id || `__${content.type}:${containerId++}`;
+            section.id = id;
 
             const container = builder(content);
             root.addChild(container);
-            this.attach(key, container);
+            this.attach(id, container);
         }
 
         if (block) {
@@ -243,7 +252,7 @@ class LayoutCalculator implements ILayoutCalculator {
 
     private _createElement(props: LayoutSection): HTMLDivElement {
         const {
-            key,
+            id,
             width = '100%',
             height = '100%',
             direction = 'horizontal',
@@ -260,15 +269,15 @@ class LayoutCalculator implements ILayoutCalculator {
             zIndex: 1000,
         });
 
-        if (!key) {
+        if (!id) {
             return div;
         }
 
-        if (this._htmlHelpers.has(key)) {
+        if (this._htmlHelpers.has(id)) {
             throw new Error();
         }
 
-        this._htmlHelpers.set(key, div);
+        this._htmlHelpers.set(id, div);
         return div;
     }
 }
