@@ -1,13 +1,17 @@
 export type StoreState = Record<string, any>;
 export type StoreSelector<S extends StoreState> = (state: S) => unknown;
 export type StoreTarget<S extends StoreState> = keyof S | StoreSelector<S>;
-export type StoreCallback = (value: unknown) => void;
+export type StoreCallback<S extends StoreState> = (
+    value: any,
+    state: S
+) => void;
 
 export class Store<S extends StoreState> {
     private _state: S;
     private _cache: Map<StoreSelector<S>, unknown> = new Map();
     private _selectors: Map<keyof S, StoreSelector<S>> = new Map();
-    private _subscribers: Map<StoreSelector<S>, Set<StoreCallback>> = new Map();
+    private _subscribers: Map<StoreSelector<S>, Set<StoreCallback<S>>> =
+        new Map();
 
     get state() {
         return this._state;
@@ -20,7 +24,7 @@ export class Store<S extends StoreState> {
         this.setState(initialState);
     }
 
-    subscribe(target: StoreTarget<S>, callback: StoreCallback) {
+    subscribe(target: StoreTarget<S>, callback: StoreCallback<S>) {
         const selector = this._createSelector(target);
 
         let callbacks = this._subscribers.get(selector);
@@ -29,10 +33,14 @@ export class Store<S extends StoreState> {
             this._subscribers.set(selector, callbacks);
         }
 
+        if (this._cache.has(selector) === false) {
+            this._cache.set(selector, selector(this._state));
+        }
+
         callbacks.add(callback);
     }
 
-    unsubscribe(target: StoreTarget<S>, callback: StoreCallback) {
+    unsubscribe(target: StoreTarget<S>, callback: StoreCallback<S>) {
         const { key, selector } = this._getSelector(target);
         if (!selector) {
             return;
@@ -58,7 +66,7 @@ export class Store<S extends StoreState> {
             if (cache.get(selector) !== value) {
                 cache.set(selector, value);
                 for (const callback of callbacks) {
-                    callback(value);
+                    callback(value, this._state);
                 }
             }
         }
