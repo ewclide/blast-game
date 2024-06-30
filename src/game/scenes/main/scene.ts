@@ -42,6 +42,7 @@ export class MainScene extends Scene<MainStore> {
             rows: 10,
             width: 550,
             height: 550,
+            topPadding: 7,
         });
 
         this._grid.onClick = this.onClickGrid;

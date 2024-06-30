@@ -54,7 +54,7 @@ export class Grid {
     onClick: (cell: Cell) => void = () => {};
 
     constructor(options: GridOptions) {
-        const { width, height, cols, rows, topPadding = 7 } = options;
+        const { width, height, cols, rows, topPadding } = options;
 
         const container = new Container();
         container.interactive = true;
