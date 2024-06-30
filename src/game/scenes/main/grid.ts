@@ -1,4 +1,4 @@
-import { Container, Point, Texture } from 'pixi.js';
+import { Container, Graphics, Point, Texture } from 'pixi.js';
 import { Tile, TileType } from './tile';
 import { Box } from '../../../core';
 
@@ -7,6 +7,7 @@ export interface GridOptions {
     rows: number;
     width: number;
     height: number;
+    topPadding: number;
 }
 
 export interface Cell {
@@ -53,19 +54,31 @@ export class Grid {
     onClick: (cell: Cell) => void = () => {};
 
     constructor(options: GridOptions) {
-        this.container = new Container();
-        this.container.interactive = true;
-        this.container.onclick = (e) => {
-            console.log(e);
-            // TODO
-            // const cell = this.getCellByCoords(x, y);
-            // this.onClick();
+        const { width, height, cols, rows, topPadding = 7 } = options;
+
+        const container = new Container();
+        container.interactive = true;
+        container.cursor = 'pointer';
+        container.onclick = (event) => {
+            const cell = this.getCellByCoords(event.x, event.y);
+            if (cell) {
+                this.onClick(cell);
+            }
         };
 
-        this.width = options.width;
-        this.height = options.height;
-        this.cols = options.cols;
-        this.rows = options.rows;
+        // Clip grid field to hide tiles on top
+        const clipMask = new Graphics();
+        clipMask.rect(0, -topPadding, width, height + topPadding);
+        clipMask.fill(0xffffff);
+        clipMask.renderable = true;
+        container.addChild(clipMask);
+        container.mask = clipMask;
+
+        this.container = container;
+        this.width = width;
+        this.height = height;
+        this.cols = cols;
+        this.rows = rows;
 
         this.create();
     }
