@@ -11,6 +11,7 @@ import {
 import { Layout, LayoutContent } from '../../core';
 import { ResourcesPixi } from './resources';
 
+export type LayoutBackground = { color: number } & LayoutContent;
 export type LayoutTexture = { textureId: string } & LayoutContent;
 export type LayoutButton = { textureId: string } & LayoutContent;
 export type LayoutText = TextOptions & LayoutContent;
@@ -31,6 +32,13 @@ export class LayoutPixi extends Layout<Container> {
                 container.y = rect.y;
             }
         );
+
+        this.regContentCreator<LayoutBackground>('background', (data) => {
+            const graphics = new Graphics();
+            graphics.rect(0, 0, 10, 10);
+            graphics.fill(data.color);
+            return graphics;
+        });
 
         this.regContentCreator<LayoutTexture>('texture', (data) => {
             const texture = resouces.get(Texture, data.textureId);
