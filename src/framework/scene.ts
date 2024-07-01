@@ -1,19 +1,45 @@
 import { Container } from 'pixi.js';
-import { Store } from '../core';
+import { IStore, StoreState } from '../core';
+import { IUserInterface } from './ui';
 import { TimeSystem } from './time';
-import { UI } from './ui';
-import { Context } from './context';
 
-export abstract class Scene<S extends Store = Store> {
-    abstract readonly store: S;
-    abstract readonly ui: UI<S>;
+export type SceneFinish<S extends StoreState> = (
+    state: S,
+    scene: IScene<S>
+) => void;
+
+export interface IScene<S extends StoreState = any> {
+    readonly name: string;
+    readonly store: IStore<S>;
+    readonly ui: IUserInterface<S>;
+    readonly container: Container;
+    readonly time: TimeSystem;
+    onFinish: SceneFinish<S>;
+
+    init(): Promise<void>;
+    finish(): void;
+    start(): void;
+    stop(): void;
+    destroy(): void;
+    update(): void;
+}
+
+export class BaseScene<S extends StoreState> implements IScene<S> {
+    readonly name: string;
+    readonly store: IStore<S>;
+    readonly ui: IUserInterface<S>;
     readonly container: Container = new Container();
     readonly time: TimeSystem = new TimeSystem();
     private _stop: boolean = true;
 
-    constructor(public name: string) {
-        const { stage } = Context.get().pixi;
-        stage.addChild(this.container);
+    onFinish: SceneFinish<S> = () => {};
+
+    constructor(name: string, ui: IUserInterface<S>, store: IStore<S>) {
+        this.name = name;
+        this.store = store;
+        this.ui = ui;
+
+        this.container.addChild(this.ui.container);
     }
 
     async init() {
@@ -29,12 +55,18 @@ export abstract class Scene<S extends Store = Store> {
 
     updateSceneCycle() {}
 
+    finish() {
+        this.onFinish(this.store.state, this);
+    }
+
     start() {
         this._stop = false;
+        this.container.interactive = true;
     }
 
     stop() {
         this._stop = true;
+        this.container.interactive = false;
     }
 
     destroy() {}
