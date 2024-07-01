@@ -1,4 +1,4 @@
-import { LayoutSection } from '../../../../core/layout';
+import { LayoutSection } from '@blast-game/core';
 
 const pauseButton = {
     type: 'button',

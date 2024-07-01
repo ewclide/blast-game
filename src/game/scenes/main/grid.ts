@@ -1,6 +1,6 @@
 import { Container, Graphics, Point, Texture } from 'pixi.js';
 import { Tile, TileType } from './tile';
-import { Box } from '../../../core';
+import { Box } from '@blast-game/core';
 
 export interface GridOptions {
     cols: number;

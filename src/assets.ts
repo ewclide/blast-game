@@ -1,4 +1,4 @@
-import { ResourcesPixiConfig } from './framework';
+import { ResourcesPixiConfig } from '@blast-game/pixi';
 
 export const assets: ResourcesPixiConfig = {
     fonts: {

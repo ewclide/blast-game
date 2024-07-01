@@ -1,4 +1,4 @@
-import { Context, IGame } from './framework';
+import { Context, IGame } from '@blast-game/framework';
 import { assets } from './assets';
 import { Game } from './game';
 

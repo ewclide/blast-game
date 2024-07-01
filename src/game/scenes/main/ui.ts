@@ -1,7 +1,7 @@
 import { Text } from 'pixi.js';
+import { BaseUI } from '@blast-game/framework';
 import { ProgressBar } from '@pixi/ui';
 import { MainState } from './store';
-import { BaseUI } from '../../../framework';
 
 export class MainUI extends BaseUI<MainState> {
     async init() {

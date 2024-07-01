@@ -1,4 +1,4 @@
-import { IStore, Store } from '../../../core';
+import { IStore, Store } from '@blast-game/core';
 
 export interface MainState {
     scores: number;

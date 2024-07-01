@@ -1,10 +1,6 @@
+import { SceneManager, BaseGame, Context } from '@blast-game/framework';
+import { ResourcesPixiConfig } from '@blast-game/pixi';
 import { assets } from '../assets';
-import {
-    ResourcesPixiConfig,
-    SceneManager,
-    BaseGame,
-    Context,
-} from '../framework';
 
 import {
     rootLayoutSection as mainLayout,

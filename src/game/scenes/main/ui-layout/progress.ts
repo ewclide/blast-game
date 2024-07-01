@@ -1,5 +1,5 @@
-import { LayoutProgress, LayoutText } from '../../../../pixi';
-import { LayoutSection } from '../../../../core/layout';
+import { LayoutProgress, LayoutText } from '@blast-game/framework';
+import { LayoutSection } from '@blast-game/core';
 
 const progressBar: LayoutProgress = {
     type: 'progress',

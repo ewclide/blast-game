@@ -1,7 +1,7 @@
 import { Graphics, Text } from 'pixi.js';
+import { BaseUI, LayoutText } from '@blast-game/framework';
+import { LayoutSection } from '@blast-game/core';
 import { GameResult, ResultState, ResultStore } from './store';
-import { BaseUI, LayoutText } from '../../../framework';
-import { LayoutSection } from '../../../core';
 
 const finalMessage: LayoutText = {
     type: 'text',

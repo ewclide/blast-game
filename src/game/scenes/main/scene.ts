@@ -1,8 +1,8 @@
 import { Easing, Tween } from '@tweenjs/tween.js';
+import { Context, BaseScene } from '@blast-game/framework';
+import { randi, testCircleBox } from '@blast-game/core';
 import { Circle, Point, Texture } from 'pixi.js';
 import { MainState, MainStore } from './store';
-import { randi, testCircleBox } from '../../../core';
-import { Context, BaseScene } from '../../../framework';
 import { Tile, TileType } from './tile';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';

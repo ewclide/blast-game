@@ -1,4 +1,4 @@
-import { LayoutBlock } from '../../../../core/layout';
+import { LayoutBlock } from '@blast-game/core';
 
 const maxScoresText = {
     type: 'text',

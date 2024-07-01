@@ -1,5 +1,5 @@
-import { LayoutBlock } from '../../../../core/layout';
-import { LayoutText } from '../../../../pixi';
+import { LayoutBlock } from '@blast-game/core';
+import { LayoutText } from '@blast-game/framework';
 
 const scoresText: LayoutText = {
     type: 'text',

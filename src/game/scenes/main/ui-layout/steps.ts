@@ -1,5 +1,5 @@
-import { LayoutBlock } from '../../../../core';
-import { LayoutText } from '../../../../framework';
+import { LayoutBlock } from '@blast-game/core';
+import { LayoutText } from '@blast-game/framework';
 
 const stepsText: LayoutText = {
     type: 'text',

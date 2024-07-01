@@ -1,4 +1,4 @@
-import { LayoutSection } from '../../../../core/layout';
+import { LayoutSection } from '@blast-game/core';
 import { progressSection } from './progress';
 import { maxScoresBlock } from './max-scores';
 import { shuffleBlock } from './shuffle';
