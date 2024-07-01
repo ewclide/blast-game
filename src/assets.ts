@@ -1,4 +1,4 @@
-import { ResourcesPixiConfig } from '../framework';
+import { ResourcesPixiConfig } from './framework';
 
 export const assets: ResourcesPixiConfig = {
     fonts: {
