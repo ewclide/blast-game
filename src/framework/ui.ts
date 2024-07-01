@@ -1,14 +1,23 @@
-import { LayoutSection, LayoutParserHTML, Store } from '../core';
+import { LayoutParserHTML, LayoutSection, StoreState, IStore } from '../core';
 import { LayoutPixi } from './pixi';
 import { Container } from 'pixi.js';
 import { Context } from './context';
 
-export class UI<S extends Store> {
+export interface IUserInterface<S extends StoreState> {
     readonly container: Container;
     readonly layout: LayoutPixi;
-    readonly store: S;
+    readonly store: IStore<S>;
 
-    constructor(store: S, section: LayoutSection) {
+    destructor(): void;
+    init(): Promise<void>;
+}
+
+export class BaseUI<S extends StoreState> implements IUserInterface<S> {
+    readonly container: Container;
+    readonly layout: LayoutPixi;
+    readonly store: IStore<S>;
+
+    constructor(store: IStore<S>, section: LayoutSection) {
         const { pixi, resources } = Context.get();
         const container = new Container();
 
@@ -21,15 +30,13 @@ export class UI<S extends Store> {
             new LayoutParserHTML()
         );
 
-        // TODO: may be split to layout builder and share it between UI's
         this.layout.prepare(resources);
 
         window.addEventListener('resize', this._handleOnResize);
     }
 
-    destroy() {
+    destructor() {
         window.removeEventListener('resize', this._handleOnResize);
-        // TODO store destroy
     }
 
     async init() {
