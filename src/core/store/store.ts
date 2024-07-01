@@ -6,7 +6,22 @@ export type StoreCallback<S extends StoreState> = (
     state: S
 ) => void;
 
-export class Store<S extends StoreState = any> {
+export interface SubscribeOptions {
+    firstStart?: boolean;
+}
+
+export interface IStore<S extends StoreState> {
+    state: S;
+    setState(state: Partial<S>): void;
+    subscribe(
+        target: StoreTarget<S>,
+        callback: StoreCallback<S>,
+        options?: Partial<SubscribeOptions>
+    ): void;
+    unsubscribe(target: StoreTarget<S>, callback: StoreCallback<S>): void;
+}
+
+export class Store<S extends StoreState = any> implements IStore<S> {
     private _state: S;
     private _cache: Map<StoreSelector<S>, unknown> = new Map();
     private _selectors: Map<keyof S, StoreSelector<S>> = new Map();
@@ -19,12 +34,15 @@ export class Store<S extends StoreState = any> {
 
     constructor(initialState: S) {
         this._state = { ...initialState };
-        this._cache = new Map();
-
         this.setState(initialState);
     }
 
-    subscribe(target: StoreTarget<S>, callback: StoreCallback<S>) {
+    subscribe(
+        target: StoreTarget<S>,
+        callback: StoreCallback<S>,
+        options: Partial<SubscribeOptions> = {}
+    ) {
+        const { firstStart = true } = options;
         const selector = this._createSelector(target);
 
         let callbacks = this._subscribers.get(selector);
@@ -39,7 +57,10 @@ export class Store<S extends StoreState = any> {
         }
 
         callbacks.add(callback);
-        callback(value, this._state);
+
+        if (firstStart) {
+            callback(value, this._state);
+        }
     }
 
     unsubscribe(target: StoreTarget<S>, callback: StoreCallback<S>) {
