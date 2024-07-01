@@ -1,8 +1,9 @@
-import { Context } from './framework';
-import { BlastGame } from './game';
+import { Context, IGame } from './framework';
+import { assets } from './assets';
+import { Game } from './game';
 
 export class App {
-    private _game!: BlastGame;
+    private _game!: IGame;
     private _context: Context;
 
     constructor(container: HTMLElement) {
@@ -14,11 +15,10 @@ export class App {
         await this._context.init();
         console.log('before game.init');
 
-        const game = new BlastGame();
+        const game = new Game(assets);
         this._game = game;
+
         await this._game.init();
         console.log('after game init');
-
-        this._context.pixi.ticker.add(game.update);
     }
 }
