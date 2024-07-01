@@ -8,7 +8,7 @@ import {
     Text,
 } from 'pixi.js';
 
-import { Layout, LayoutContent } from '../../core';
+import { Layout, LayoutContent } from '@blast-game/core';
 import { ResourcesPixi } from './resources';
 
 export type LayoutBackground = { color: number } & LayoutContent;

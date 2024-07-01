@@ -4,7 +4,7 @@ import {
     ResourceConfig,
     ResourceName,
     ResourcePath,
-} from '../../core';
+} from '@blast-game/core';
 
 export type PixiResource = Texture | FontFace;
 
