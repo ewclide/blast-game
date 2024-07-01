@@ -1,5 +1,5 @@
 import { Container } from 'pixi.js';
-import { IStore, StoreState } from '../core';
+import { IStore, StoreState } from '@blast-game/core';
 import { IUserInterface } from './ui';
 import { TimeSystem } from './time';
 

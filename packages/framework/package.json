@@ -1,0 +1,10 @@
+{
+    "name": "@blast-game/framework",
+    "version": "0.0.1",
+    "private": true,
+    "main": "src/index.ts",
+    "devDependencies": {
+        "@blast-game/core": "^0.0.1",
+        "@blast-game/pixi": "^0.0.1"
+    }
+}

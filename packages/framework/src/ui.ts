@@ -1,5 +1,10 @@
-import { LayoutParserHTML, LayoutSection, StoreState, IStore } from '../core';
-import { LayoutPixi } from './pixi';
+import {
+    LayoutParserHTML,
+    LayoutSection,
+    StoreState,
+    IStore,
+} from '@blast-game/core';
+import { LayoutPixi } from '@blast-game/pixi';
 import { Container } from 'pixi.js';
 import { Context } from './context';
 

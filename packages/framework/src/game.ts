@@ -1,4 +1,4 @@
-import { ResourcesPixiConfig } from './pixi';
+import { ResourcesPixiConfig } from '@blast-game/pixi';
 import { ISceneManager } from './scene-manager';
 import { Context } from './context';
 

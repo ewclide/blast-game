@@ -1,6 +1,6 @@
+import { ResourceTypes } from '@blast-game/core';
+import { ResourcesPixi } from '@blast-game/pixi';
 import { Application, Texture } from 'pixi.js';
-import { ResourcesPixi } from './pixi';
-import { ResourceTypes } from '../core';
 
 const resourceTypes: ResourceTypes = {
     fonts: FontFace,

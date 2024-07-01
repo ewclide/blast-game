@@ -4,4 +4,4 @@ export * from './scene-manager';
 export * from './game';
 export * from './time';
 export * from './ui';
-export * from './pixi';
+export * from '../../pixi/src';
