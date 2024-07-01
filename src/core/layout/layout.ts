@@ -42,8 +42,21 @@ interface FittableContainer<C extends LayoutContainer> {
     fit: LayoutFitStrategy;
 }
 
+export interface ILayout<C extends LayoutContainer> {
+    prepare(resources: ResourceManager): void;
+    init(): void;
+    update(): void;
+    regContentCreator<T extends LayoutContentData>(
+        type: string,
+        create: LayoutCreateContainer<T>,
+        fit: LayoutFitStrategy
+    ): void;
+    getContainer(id: string): C;
+    attach(sectionID: string, container: C, fit: LayoutFitStrategy): void;
+}
+
 let containerId = 0;
-export class Layout<C extends LayoutContainer> {
+export class Layout<C extends LayoutContainer> implements ILayout<C> {
     private _canvas: HTMLCanvasElement;
     private _rects: Map<string, LayoutRect> = new Map();
     private _section: LayoutSection;
