@@ -1,8 +1,8 @@
 import { Easing, Tween } from '@tweenjs/tween.js';
 import { Circle, Point, Texture } from 'pixi.js';
-import { MainStore, createMainStore } from './store';
+import { MainState, MainStore } from './store';
 import { randi, testCircleBox } from '../../../core';
-import { Context, Scene } from '../../../framework';
+import { Context, BaseScene } from '../../../framework';
 import { Tile, TileType } from './tile';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';
@@ -14,10 +14,7 @@ export interface TileTypeDescriptor {
 
 const TILE_ACCEL = 3000;
 
-export class MainScene extends Scene<MainStore> {
-    readonly store: MainStore;
-    readonly ui: MainUI;
-
+export class MainScene extends BaseScene<MainState> {
     private _grid!: Grid;
     private _tiles = new Map<number, Tile>();
     private _tileTypes: TileTypeDescriptor[] = [];
@@ -30,11 +27,9 @@ export class MainScene extends Scene<MainStore> {
         delay: number;
     }>();
 
-    constructor(name: string) {
-        super(name);
+    constructor(name: string, ui: MainUI, store: MainStore) {
+        super(name, ui, store);
 
-        this.store = createMainStore();
-        this.ui = new MainUI(this.store);
         this.container.addChild(this.ui.container);
 
         this._grid = new Grid({
@@ -79,6 +74,15 @@ export class MainScene extends Scene<MainStore> {
             steps: 50,
             maxScores: 100,
         });
+
+        this.store.subscribe(
+            (state) => state.scores >= state.maxScores || state.steps <= 0,
+            () => {
+                this.stop();
+                this.finish();
+            },
+            { firstStart: false }
+        );
     }
 
     updateSceneCycle(): void {

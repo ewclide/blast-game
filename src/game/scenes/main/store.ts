@@ -1,4 +1,4 @@
-import { Store } from '../../../core';
+import { IStore, Store } from '../../../core';
 
 export interface MainState {
     scores: number;
@@ -6,8 +6,9 @@ export interface MainState {
     maxScores: number;
 }
 
-export type MainStore = Store<MainState>;
+export type MainStore = IStore<MainState>;
 
+// Realization
 export function createMainStore(): MainStore {
     return new Store<MainState>({
         scores: 0,

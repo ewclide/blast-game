@@ -1,14 +1,9 @@
-import { Container, Text } from 'pixi.js';
+import { Text } from 'pixi.js';
 import { ProgressBar } from '@pixi/ui';
-import { rootLayoutSection } from './ui-layout';
-import { MainStore } from './store';
-import { UI } from '../../../framework';
+import { MainState } from './store';
+import { BaseUI } from '../../../framework';
 
-export class MainUI extends UI<MainStore> {
-    constructor(store: MainStore) {
-        super(store, rootLayoutSection);
-    }
-
+export class MainUI extends BaseUI<MainState> {
     async init() {
         await super.init();
 
