@@ -12,6 +12,7 @@ export class MainUI extends BaseUI<MainState> {
         const scores = layout.getContainer('scores').view as Text;
         const maxScores = layout.getContainer('max-scores').view as Text;
         const shuffles = layout.getContainer('shuffle-text').view as Text;
+        const boosters = layout.getContainer('booster-bomb-text').view as Text;
         const progress = layout.getContainer('progress-bar')
             .view as ProgressBar;
 
@@ -32,6 +33,10 @@ export class MainUI extends BaseUI<MainState> {
 
         store.subscribe('shuffles', (value: number) => {
             shuffles.text = `перемешать (${value})`;
+        });
+
+        store.subscribe('boosters', (value: number) => {
+            boosters.text = `бомба\n(${value})`;
         });
 
         store.subscribe(

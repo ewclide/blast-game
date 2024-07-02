@@ -1,6 +1,7 @@
 import { LayoutSection } from '@blast-game/core';
 import { progressSection } from './progress';
 import { maxScoresBlock } from './max-scores';
+import { boosterSection } from './booster';
 import { shuffleBlock } from './shuffle';
 import { pauseSection } from './pause';
 import { scoresBlock } from './scores';
@@ -25,43 +26,6 @@ const scoresSection: LayoutSection = {
             },
         ],
     },
-};
-
-const boosterSection: LayoutSection = {
-    direction: 'horizontal',
-    height: '200px',
-    sections: [
-        {
-            block: {
-                id: 'booster-bomb',
-                height: '140px',
-                content: {
-                    type: 'button',
-                    textureId: 'booster-back',
-                },
-            },
-        },
-        {
-            block: {
-                id: 'booster-1',
-                height: '140px',
-                content: {
-                    type: 'button',
-                    textureId: 'booster-back',
-                },
-            },
-        },
-        {
-            block: {
-                id: 'booster-2',
-                height: '140px',
-                content: {
-                    type: 'button',
-                    textureId: 'booster-back',
-                },
-            },
-        },
-    ],
 };
 
 const bodyLeftSection: LayoutSection = {
