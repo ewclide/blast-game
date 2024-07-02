@@ -88,21 +88,19 @@ export class MainScene extends BaseScene<MainState> {
             'booster-bomb-switcher'
         ).view as CheckBox;
 
-        const resetBoosterSwitcher = () => {
-            boosterBombSwitcher.checked = false;
-        };
-
         boosterBombSwitcher.onCheck.connect(() => {
             const boosters = this.store.state.boosters;
             if (!boosters) {
-                resetBoosterSwitcher();
+                boosterBombSwitcher.forceCheck(false);
                 return;
             }
 
             const active = this._boosterCreator.active(BombBooster);
             if (active) {
                 this.store.setState({ boosters: boosters - 1 });
-                active.onApply = resetBoosterSwitcher;
+                active.onApply = () => boosterBombSwitcher.forceCheck(false);
+            } else {
+                boosterBombSwitcher.forceCheck(true);
             }
         });
 
