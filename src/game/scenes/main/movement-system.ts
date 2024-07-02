@@ -36,6 +36,28 @@ export class MovementSystem {
         }
     }
 
+    moveHoveredTiles(column: Cell[], col: number): number {
+        let emptyCells = 0;
+        for (let ci = column.length - 1; ci >= 0; ci--) {
+            const cell = column[ci];
+            const { tile } = cell;
+
+            if (tile === null) {
+                emptyCells++;
+            }
+
+            if (tile !== null && emptyCells > 0) {
+                // Now the tile is not attached to the cell, because it's falling
+                cell.tile = null;
+                const dst = column[ci + emptyCells];
+                tile.container.zIndex = column.length - dst.row;
+                this.addTile(tile, dst);
+            }
+        }
+
+        return emptyCells;
+    }
+
     addTile(tile: Tile, dst: Cell) {
         this._tilesToMove.add({
             tile,
