@@ -99,7 +99,6 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
     }
 
     getContainer(id: string): C {
-        // console.log('getContainer', id);
         const fittable = this._fittables.get(id);
         if (fittable === undefined) {
             throw new Error(`Unknown layout id ${id}`);
@@ -112,9 +111,6 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
         container: C,
         fit: LayoutFitStrategy = layoutDefaultFitStrategy
     ) {
-        if (sectionID === 'grid') {
-            console.log('attach', [...this._rects.keys()]);
-        }
         if (this._fittables.has(sectionID)) {
             throw new Error();
         }
