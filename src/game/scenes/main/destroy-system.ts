@@ -4,34 +4,25 @@ import { Cell, Grid } from './grid';
 import { Circle } from 'pixi.js';
 import { Tile } from './tile';
 
-export class DestroySystem {
-    private _grid: Grid;
-    private _minBatchSize: number = 2;
-    private _tweens: Map<Tile, Tween<any>> = new Map();
+export interface DestroyStrategy {
+    requestToDestroy: (cell: Cell) => Set<Cell> | null;
+}
 
-    constructor(grid: Grid) {
-        this._grid = grid;
+export class OneCellDestroyStrategy implements DestroyStrategy {
+    requestToDestroy(cell: Cell) {
+        return new Set([cell]);
+    }
+}
+
+export class BatchDestroyStrategy implements DestroyStrategy {
+    constructor(private _grid: Grid, public minBatchSize: number) {}
+
+    requestToDestroy(cell: Cell) {
+        const batch = this._getBatch(cell);
+        return batch.size >= this.minBatchSize ? batch : null;
     }
 
-    onDestroyTiles = (tiles: Tile[]) => {};
-
-    update(dt: number): void {
-        for (const tween of this._tweens.values()) {
-            tween.update();
-        }
-    }
-
-    destroy(cell: Cell): Tile[] {
-        // Destroy the batch of tiles
-        const cells = this.getCellsBatch(cell);
-        if (cells.size >= this._minBatchSize) {
-            return this._destroyTiles(cells);
-        }
-
-        return [];
-    }
-
-    getCellsBatch(cell: Cell, _cells: Set<Cell> = new Set()): Set<Cell> {
+    private _getBatch(cell: Cell, _cells: Set<Cell> = new Set()) {
         const { tile } = cell;
         if (tile === null || _cells.has(cell)) {
             return _cells;
@@ -49,16 +40,19 @@ export class DestroySystem {
 
             const neighborTile = neighborCell.tile;
             if (neighborTile !== null && neighborTile.type === tile.type) {
-                this.getCellsBatch(neighborCell, _cells);
+                this._getBatch(neighborCell, _cells);
             }
         }
 
         return _cells;
     }
+}
 
-    blowUpTiles(
+export class CircleDestroyStrategy implements DestroyStrategy {
+    constructor(private _grid: Grid, public radius: number) {}
+
+    requestToDestroy(
         cell: Cell,
-        radius: number,
         _circle?: Circle,
         _cells = new Set<Cell>()
     ): Set<Cell> {
@@ -74,7 +68,7 @@ export class DestroySystem {
             circle = new Circle(
                 cell.position.x + cellWidth / 2,
                 cell.position.y + cellHeight / 2,
-                radius
+                this.radius
             );
         }
 
@@ -84,12 +78,41 @@ export class DestroySystem {
             for (const mask of cell.neighbors) {
                 const neighborCell = this._grid.getCellByMask(mask);
                 if (neighborCell) {
-                    this.blowUpTiles(neighborCell, radius, circle, _cells);
+                    this.requestToDestroy(neighborCell, circle, _cells);
                 }
             }
         }
 
         return _cells;
+    }
+}
+
+export class DestroySystem {
+    private _grid: Grid;
+    private _minBatchSize: number = 2;
+    private _tweens: Map<Tile, Tween<any>> = new Map();
+
+    destroyStrategy: DestroyStrategy = new OneCellDestroyStrategy();
+    onDestroyTiles = (tiles: Tile[]) => {};
+
+    constructor(grid: Grid) {
+        this._grid = grid;
+    }
+
+    update(dt: number): void {
+        for (const tween of this._tweens.values()) {
+            tween.update();
+        }
+    }
+
+    destroy(cell: Cell): Tile[] {
+        // Destroy the batch of tiles
+        const cells = this.destroyStrategy.requestToDestroy(cell);
+        if (cells !== null) {
+            return this._destroyTiles(cells);
+        }
+
+        return [];
     }
 
     private _destroyTiles(cells: Iterable<Cell>): Tile[] {
