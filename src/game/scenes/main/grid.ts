@@ -140,6 +140,14 @@ export class Grid {
         }
     }
 
+    forEachColumn(traverser: (column: Cell[], index: number) => void) {
+        const cells = this._cells;
+        for (let col = 0; col < cells.length; col++) {
+            const column = cells[col];
+            traverser(column, col);
+        }
+    }
+
     clear() {
         for (const verticalLine of this._cells) {
             for (const cell of verticalLine) {
