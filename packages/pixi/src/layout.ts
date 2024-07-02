@@ -1,4 +1,4 @@
-import { Button, ProgressBar } from '@pixi/ui';
+import { Button, CheckBox, ProgressBar } from '@pixi/ui';
 import {
     TextOptions,
     Container,
@@ -19,6 +19,12 @@ export type LayoutProgress = {
     value: number;
     fill: string;
     bg: string;
+} & LayoutContent;
+
+export type LayoutSwitcher = {
+    checked: boolean;
+    imageOn: string;
+    imageOff: string;
 } & LayoutContent;
 
 export class LayoutPixi extends Layout<Container> {
@@ -64,6 +70,21 @@ export class LayoutPixi extends Layout<Container> {
             });
 
             return { view: progress };
+        });
+
+        this.regContentCreator<LayoutSwitcher>('switcher', (data) => {
+            const imageOff = resouces.get(Texture, data.imageOff);
+            const imageOn = resouces.get(Texture, data.imageOn);
+
+            const switcher = new CheckBox({
+                checked: false,
+                style: {
+                    unchecked: new Sprite(imageOff),
+                    checked: new Sprite(imageOn),
+                },
+            });
+
+            return { view: switcher };
         });
     }
 }
