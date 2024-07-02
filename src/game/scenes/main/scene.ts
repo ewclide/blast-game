@@ -1,8 +1,9 @@
 import { Button } from '@pixi/ui';
 import { BaseScene } from '@blast-game/framework';
+import { BatchDestroyStrategy, DestroySystem } from './destroy-system';
 import { MainState, MainStore } from './store';
 import { MovementSystem } from './movement-system';
-import { DestroySystem } from './destroy-system';
+import { BombBooster, BoosterCreator } from './booster';
 import { TileGenerator } from './tile-generator';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';
@@ -10,10 +11,10 @@ import { MainUI } from './ui';
 export class MainScene extends BaseScene<MainState> {
     private _grid!: Grid;
     private _stopClicking: boolean = false;
-    private _activeBoosterBomb: boolean = false;
     private _movementSystem: MovementSystem;
     private _tileGenerator: TileGenerator;
     private _destroySystem: DestroySystem;
+    private _boosterCreator: BoosterCreator;
 
     constructor(name: string, ui: MainUI, store: MainStore) {
         super(name, ui, store);
@@ -31,6 +32,12 @@ export class MainScene extends BaseScene<MainState> {
         this._movementSystem = new MovementSystem();
         this._destroySystem = new DestroySystem(this._grid);
         this._tileGenerator = new TileGenerator(this._grid);
+        this._boosterCreator = new BoosterCreator(
+            store,
+            this._grid,
+            this._destroySystem,
+            this._movementSystem
+        );
     }
 
     async init() {
@@ -39,6 +46,10 @@ export class MainScene extends BaseScene<MainState> {
         this._tileGenerator.init();
         this._tileGenerator.fillGrid();
         this._grid.onClick = this.onClickGrid;
+        this._destroySystem.destroyStrategy = new BatchDestroyStrategy(
+            this._grid,
+            2
+        );
 
         this.ui.layout.attach('grid', {
             view: this._grid.container,
@@ -69,6 +80,16 @@ export class MainScene extends BaseScene<MainState> {
             }
         });
 
+        const boosterBomb = this.ui.layout.getContainer(
+            'booster-bomb'
+        ) as Button;
+        boosterBomb.onPress.connect(() => {
+            const booster = this._boosterCreator.active(BombBooster);
+            if (booster) {
+                booster.setup(110);
+            }
+        });
+
         this._destroySystem.onDestroyTiles = (tiles) => {
             const { scores, steps } = this.store.state;
             this.store.setState({
@@ -93,6 +114,8 @@ export class MainScene extends BaseScene<MainState> {
         if (this._stopClicking) {
             return;
         }
+
+        this._boosterCreator.apply(cell);
 
         const destroyedTiles = this._destroySystem.destroy(cell);
         if (destroyedTiles.length) {

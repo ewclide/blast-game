@@ -33,7 +33,7 @@ const boosterSection: LayoutSection = {
     sections: [
         {
             block: {
-                id: 'booster-0',
+                id: 'booster-bomb',
                 height: '140px',
                 content: {
                     type: 'button',
