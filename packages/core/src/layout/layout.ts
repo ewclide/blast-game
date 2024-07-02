@@ -112,9 +112,6 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
         container: C,
         fit: LayoutFitStrategy = layoutDefaultFitStrategy
     ) {
-        if (sectionID === 'grid') {
-            console.log('attach', [...this._rects.keys()]);
-        }
         if (this._fittables.has(sectionID)) {
             throw new Error();
         }

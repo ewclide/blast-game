@@ -1,6 +1,6 @@
-import { Container, Graphics, Point, Texture } from 'pixi.js';
-import { Tile, TileType } from './tile';
+import { Container, Graphics, Point } from 'pixi.js';
 import { Box } from '@blast-game/core';
+import { TileEntity } from './tile';
 
 export interface GridOptions {
     cols: number;
@@ -10,28 +10,21 @@ export interface GridOptions {
     topPadding: number;
 }
 
+export interface CellAttachment {
+    cell: Cell | null;
+    attach(cell: Cell): void;
+    detach(): void;
+    getNeighbors(): CellAttachment[];
+}
+
 export interface Cell {
     box: Box;
     position: Point;
     row: number;
     col: number;
-    tile: Tile | null;
-    /*
-        Note: Store as mask
-        mask = 0x[row][col] = (row << 16 | col)
-        row = mask >> 16;
-        col = mask & 0xffff;
-    */
-    neighbors: number[];
+    attachment: CellAttachment | null;
+    neighbors: Cell[];
 }
-
-export interface TileTypeDescriptor {
-    type: TileType;
-    texture: Texture;
-}
-
-const encodeCoords = (row: number, col: number) => (row << 16) | col;
-const decodeCoords = (mask: number) => [mask >> 16, mask & 0xffff];
 
 export class Grid {
     private _cells: Cell[][] = [];
@@ -42,6 +35,7 @@ export class Grid {
     readonly width: number;
     readonly height: number;
     readonly container: Container;
+    readonly topPadding: number;
 
     get cellWidth(): number {
         return this._cellSize.x;
@@ -74,6 +68,7 @@ export class Grid {
         container.addChild(clipMask);
         container.mask = clipMask;
 
+        this.topPadding = topPadding;
         this.container = container;
         this.width = width;
         this.height = height;
@@ -90,28 +85,11 @@ export class Grid {
         const cellHeight = this.height / rows;
         this._cellSize.set(cellWidth, cellHeight);
 
-        const encodeWithBorderCheck = (row: number, col: number) => {
-            // Check field restrictions additionally
-            return col >= 0 && col < cols && row >= 0 && row < rows
-                ? encodeCoords(row, col)
-                : -1;
-        };
-
         // Create grid: by columns
         this._cells = Array.from({ length: cols }, (_, col) => {
             return Array.from({ length: rows }, (_, row) => {
                 const box = new Box();
                 const position = new Point(col * cellWidth, row * cellHeight);
-                const neighbors = [
-                    encodeWithBorderCheck(row - 1, col),
-                    encodeWithBorderCheck(row + 1, col),
-                    encodeWithBorderCheck(row, col - 1),
-                    encodeWithBorderCheck(row, col + 1),
-                    encodeWithBorderCheck(row - 1, col - 1),
-                    encodeWithBorderCheck(row - 1, col + 1),
-                    encodeWithBorderCheck(row + 1, col - 1),
-                    encodeWithBorderCheck(row + 1, col + 1),
-                ].filter((v) => v >= 0);
 
                 box.setPositionSize(
                     position.x,
@@ -125,10 +103,25 @@ export class Grid {
                     position,
                     col,
                     row,
-                    tile: null,
-                    neighbors,
+                    attachment: null,
+                    neighbors: [],
                 };
             });
+        });
+
+        // setup neighbors
+        this.forEachCell((cell) => {
+            const { row, col } = cell;
+            cell.neighbors = [
+                this.getCellByRowCol(row - 1, col),
+                this.getCellByRowCol(row + 1, col),
+                this.getCellByRowCol(row, col - 1),
+                this.getCellByRowCol(row, col + 1),
+                // this.getCellByRowCol(row - 1, col - 1),
+                // this.getCellByRowCol(row - 1, col + 1),
+                // this.getCellByRowCol(row + 1, col - 1),
+                // this.getCellByRowCol(row + 1, col + 1),
+            ].filter((c) => c !== null) as Cell[];
         });
     }
 
@@ -140,25 +133,41 @@ export class Grid {
         }
     }
 
+    forEachColumn(traverser: (column: Cell[], index: number) => void): void {
+        for (let col = 0; col < this._cells.length; col++) {
+            const column = this._cells[col];
+            traverser(column, col);
+        }
+    }
+
     clear() {
         for (const verticalLine of this._cells) {
             for (const cell of verticalLine) {
-                cell.tile = null;
+                cell.attachment = null;
             }
         }
     }
 
-    getCol(col: number): Cell[] {
-        return this._cells[col];
+    getAllAttachments(): CellAttachment[] {
+        const attachments: CellAttachment[] = [];
+
+        this.forEachCell((cell) => {
+            const { attachment } = cell;
+            if (attachment) {
+                attachments.push(attachment);
+            }
+        });
+
+        return attachments;
     }
 
-    getCellByMask(mask: number): Cell {
-        const [row, col] = decodeCoords(mask);
-        return this.getCellByRowCol(row, col);
-    }
+    getCellByRowCol(row: number, col: number): Cell | null {
+        const column = this._cells[col];
+        if (column === undefined) {
+            return null;
+        }
 
-    getCellByRowCol(row: number, col: number): Cell {
-        return this._cells[col][row];
+        return column[row] || null;
     }
 
     getCellByCoords(x: number, y: number): Cell | null {

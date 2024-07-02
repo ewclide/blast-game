@@ -10,7 +10,7 @@ export interface SubscribeOptions {
     firstStart?: boolean;
 }
 
-export interface IStore<S extends StoreState> {
+export interface IStore<S extends StoreState = any> {
     state: S;
     setState(state: Partial<S>): void;
     subscribe(

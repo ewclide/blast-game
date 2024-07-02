@@ -3,29 +3,33 @@ import { Context, BaseScene } from '@blast-game/framework';
 import { randi, testCircleBox } from '@blast-game/core';
 import { Circle, Point, Texture } from 'pixi.js';
 import { MainState, MainStore } from './store';
-import { Tile, TileType } from './tile';
+import {
+    ComponentManager,
+    DestroyComponent,
+    MovementComponent,
+    ScoresComponent,
+    Tile,
+    TileEntity,
+    TileFactory,
+    ViewComponent,
+} from './tile';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';
 
-export interface TileTypeDescriptor {
-    type: TileType;
+export interface TileDescriptor {
+    family: string;
     texture: Texture;
+    scores: number;
 }
-
-const TILE_ACCEL = 3000;
 
 export class MainScene extends BaseScene<MainState> {
     private _grid!: Grid;
-    private _tiles = new Map<number, Tile>();
-    private _tileTypes: TileTypeDescriptor[] = [];
+    private _tiles: TileFactory;
+    private _components: ComponentManager;
+    private _tileTypes: TileDescriptor[] = [];
+    private _tilesOnTop: TileEntity[] = [];
     private _stopClicking: boolean = false;
-    private _tweens: Map<Tile, Tween<any>> = new Map();
     private _minBatchSize: number = 2;
-    private _tilesToFall = new Set<{
-        tile: Tile;
-        dst: Cell;
-        delay: number;
-    }>();
 
     constructor(name: string, ui: MainUI, store: MainStore) {
         super(name, ui, store);
@@ -41,30 +45,18 @@ export class MainScene extends BaseScene<MainState> {
         });
 
         this._grid.onClick = this.onClickGrid;
+        this._tiles = new TileFactory(this._grid.container);
+        this._components = new ComponentManager(
+            this.time,
+            this.store,
+            this._tiles
+        );
     }
 
     async init() {
         await super.init();
 
-        // TODO
-        const { resources } = Context.get();
-
-        const tileTypes = {
-            red: 'tile-red',
-            green: 'tile-green',
-            blue: 'tile-blue',
-            pink: 'tile-pink',
-            yellow: 'tile-yellow',
-        };
-
-        const tiles: TileTypeDescriptor[] = [];
-        for (const [type, image] of Object.entries(tileTypes)) {
-            const texture = resources.get(Texture, image);
-            tiles.push({ type, texture });
-        }
-
-        this._tileTypes = tiles;
-
+        this.generateTileTypes();
         this.fillGrid();
 
         this.ui.layout.attach('grid', this._grid.container);
@@ -85,128 +77,24 @@ export class MainScene extends BaseScene<MainState> {
         );
     }
 
-    updateSceneCycle(): void {
-        const dt = this.time.delta;
+    generateTileTypes() {
+        const { resources } = Context.get();
+        // TODO
+        const tileTypesConfig = [
+            { family: 'red', view: 'tile-red', scores: 1 },
+            { family: 'green', view: 'tile-green', scores: 1 },
+            { family: 'blue', view: 'tile-blue', scores: 1 },
+            { family: 'pink', view: 'tile-pink', scores: 1 },
+            { family: 'yellow', view: 'tile-yellow', scores: 1 },
+        ];
 
-        for (const tween of this._tweens.values()) {
-            tween.update();
+        const tileTypes: TileDescriptor[] = [];
+        for (const { family, view, scores } of tileTypesConfig) {
+            const texture = resources.get(Texture, view);
+            tileTypes.push({ family, texture, scores });
         }
 
-        for (const tileData of this._tilesToFall) {
-            const { tile, dst, delay } = tileData;
-            if (delay > 0) {
-                tileData.delay -= dt;
-                continue;
-            }
-
-            const maxY = dst.position.y;
-            const position = tile.container.position;
-
-            tile.speed += TILE_ACCEL * dt;
-            position.y += tile.speed * dt;
-            if (position.y >= maxY) {
-                dst.tile = tile;
-                position.y = maxY;
-                tile.speed = 0;
-                this._tilesToFall.delete(tileData);
-            }
-        }
-
-        if (!this._tilesToFall.size) {
-            this._stopClicking = false;
-        }
-    }
-
-    onDestroyTiles(tiles: Tile[]) {
-        const { scores, steps } = this.store.state;
-        this.store.setState({
-            scores: scores + tiles.length,
-            steps: steps - 1,
-        });
-    }
-
-    onClickGrid = (cell: Cell) => {
-        if (this._stopClicking) {
-            return;
-        }
-
-        // Destroy the batch of tiles
-        // const cells = this.getCellsBatch(cell);
-        const cells = this.blowUpTiles(cell, 100);
-        if (cells.size >= this._minBatchSize) {
-            this._stopClicking = true;
-            this.destroyTiles(cells);
-        }
-
-        for (let col = 0; col < this._grid.cols; col++) {
-            const column = this._grid.getCol(col);
-            const emptyCells = this.addTilesToFall(column);
-            this.generateTilesOnTop(emptyCells, col, column);
-        }
-    };
-
-    destroyTiles(cells: Iterable<Cell>) {
-        const tiles: Tile[] = [];
-        for (const cell of cells) {
-            const { tile } = cell;
-            if (tile !== null) {
-                this.destroyTile(tile);
-                tiles.push(tile);
-            }
-            cell.tile = null;
-        }
-
-        this.onDestroyTiles(tiles);
-    }
-
-    addTilesToFall(column: Cell[]): number {
-        // TODO: split by
-        // getEmptyCells => Cell[]
-        // addTilesToFall()
-
-        let emptyCells = 0;
-        for (let ci = column.length - 1; ci >= 0; ci--) {
-            const cell = column[ci];
-            const { tile } = cell;
-
-            if (tile === null) {
-                emptyCells++;
-            }
-
-            if (tile !== null && emptyCells > 0) {
-                // Now the tile is not attached to the cell, because it's falling
-                cell.tile = null;
-                const dst = column[ci + emptyCells];
-                tile.container.zIndex = column.length - dst.row;
-                this._tilesToFall.add({
-                    tile,
-                    dst,
-                    delay: 0.2,
-                });
-            }
-        }
-
-        return emptyCells;
-    }
-
-    generateTilesOnTop(emptyCells: number, col: number, column: Cell[]) {
-        const { cellWidth, cellHeight } = this._grid;
-
-        for (let ci = 0; ci < emptyCells; ci++) {
-            const tile = this.generateTile();
-            const dst = column[emptyCells - (ci + 1)];
-            const cX = col * cellWidth;
-            const cY = -(ci + 1) * cellHeight - tile.topPadding;
-
-            tile.container.position.set(cX, cY);
-            tile.container.zIndex = column.length - dst.row;
-
-            this._tilesToFall.add({
-                tile,
-                dst,
-                delay: 0.2,
-            });
-        }
+        this._tileTypes = tileTypes;
     }
 
     fillGrid() {
@@ -214,38 +102,176 @@ export class MainScene extends BaseScene<MainState> {
 
         this._grid.forEachCell((cell) => {
             const tile = this.generateTile();
-            // TODO: replace this by accessors
             tile.container.position.copyFrom(cell.position);
             tile.container.zIndex = rows - cell.row;
-            cell.tile = tile;
+            tile.attach(cell);
         });
     }
 
-    generateTile(): Tile {
+    generateTile(): TileEntity {
         const { cellWidth, cellHeight } = this._grid;
         const tileTypes = this._tileTypes;
         const randomTile = tileTypes[randi(0, tileTypes.length - 1)];
 
-        const tile = new Tile({
-            type: randomTile.type,
+        const tile = this._tiles.create({
+            family: randomTile.family,
             position: new Point(),
             width: cellWidth,
             height: cellHeight,
-            texture: randomTile.texture,
             zIndex: 0,
-            scores: 1,
         });
 
-        this._tiles.set(tile.id, tile);
-        this._grid.container.addChild(tile.container);
+        const view = this._components.create(ViewComponent, {
+            texture: randomTile.texture,
+        });
+        const scores = this._components.create(ScoresComponent, {
+            scores: randomTile.scores,
+        });
+        const destroy = this._components.create(DestroyComponent);
+        const movement = this._components.create(MovementComponent, {
+            dst: new Point(),
+            delay: 0.5,
+        });
+
+        this._components.attach(tile, view);
+        this._components.attach(tile, scores);
+        this._components.attach(tile, destroy);
+        this._components.attach(tile, movement);
 
         return tile;
+    }
+
+    updateSceneCycle(): void {
+        this._components.update();
+        // if (!this._tilesToFall.size) {
+        //     this._stopClicking = false;
+        // }
+    }
+
+    onDestroyTiles(tiles: Tile[]) {
+        // const { scores, steps } = this.store.state;
+        // this.store.setState({
+        //     scores: scores + tiles.length,
+        //     steps: steps - 1,
+        // });
+    }
+
+    onClickGrid = (cell: Cell) => {
+        if (this._stopClicking) {
+            return;
+        }
+
+        const currentTile = cell.attachment as TileEntity;
+        if (currentTile === null) {
+            return;
+        }
+
+        const tiles = this.getTilesBatch(currentTile);
+        if (tiles.size >= this._minBatchSize) {
+            this._stopClicking = true;
+            console.log('_stopClicking = true');
+
+            for (const tile of tiles) {
+                const destroy = this._components.get(tile, DestroyComponent);
+                destroy.activate();
+                this._components.requestUpdate(destroy);
+            }
+
+            Promise.all(
+                [...tiles].map((tile) => {
+                    return new Promise<void>((resolve) => {
+                        tile.onDestroy = resolve;
+                    });
+                })
+            ).then(() => {
+                console.log('destroy tiles', tiles.size);
+                this._grid.forEachColumn((column, col) => {
+                    this.generateTilesOnTop(column, col);
+                });
+            });
+        }
+
+        // if (attachment !== null) {
+        //     const destroy = this._components.get(attachment, DestroyComponent);
+        //     destroy.activate();
+        //     this._components.requestUpdate(destroy);
+        // }
+
+        // for (let col = 0; col < this._grid.cols; col++) {
+        //     const column = this._grid.getCol(col);
+        //     const emptyCells = this.addTilesToFall(column);
+        //     this.generateTilesOnTop(emptyCells, col, column);
+        // }
+    };
+
+    destroyTiles(cells: Iterable<Cell>) {
+        // const tiles: Tile[] = [];
+        // for (const cell of cells) {
+        //     const { tile } = cell;
+        //     if (tile !== null) {
+        //         this.destroyTile(tile);
+        //         tiles.push(tile);
+        //     }
+        //     cell.tile = null;
+        // }
+        // this.onDestroyTiles(tiles);
+    }
+
+    generateTilesOnTop(column: Cell[], index: number) {
+        const movements = new Set<MovementComponent>();
+
+        let emptyCells = 0;
+        for (let ci = column.length - 1; ci >= 0; ci--) {
+            const cell = column[ci];
+            const tile = cell.attachment as TileEntity;
+
+            if (tile === null) {
+                emptyCells++;
+            }
+
+            if (tile !== null && emptyCells > 0) {
+                const dstCell = column[ci + emptyCells];
+                tile.container.zIndex = column.length - dstCell.row;
+
+                const movement = this._components.get(tile, MovementComponent);
+                movement.setDstCell(dstCell);
+                this._components.requestUpdate(movement);
+                movements.add(movement);
+            }
+        }
+
+        const { cellWidth, cellHeight } = this._grid;
+        for (let ci = 0; ci < emptyCells; ci++) {
+            const tile = this.generateTile();
+            const dstCell = column[emptyCells - (ci + 1)];
+            const cX = index * cellWidth;
+            const cY = -(ci + 1) * cellHeight - this._grid.topPadding;
+
+            tile.container.position.set(cX, cY);
+            tile.container.zIndex = column.length - dstCell.row;
+
+            const movement = this._components.get(tile, MovementComponent);
+            movement.setDstCell(dstCell);
+            this._components.requestUpdate(movement);
+            movements.add(movement);
+        }
+
+        Promise.all(
+            [...movements].map((movement) => {
+                return new Promise<void>((resolve) => {
+                    movement.onComplete = resolve;
+                });
+            })
+        ).then(() => {
+            console.log('_stopClicking = false');
+            this._stopClicking = false;
+        });
     }
 
     shuffle() {
         this._grid.clear();
 
-        const tiles = [...this._tiles.values()];
+        const tiles = this._grid.getAllAttachments() as TileEntity[];
 
         let currentIndex = tiles.length - 1;
         while (currentIndex >= 0) {
@@ -264,105 +290,71 @@ export class MainScene extends BaseScene<MainState> {
             const col = index % cols;
             const row = Math.floor(index / cols);
             const cell = this._grid.getCellByRowCol(row, col);
-
-            tile.container.position.copyFrom(cell.position);
-            tile.container.zIndex = rows - row;
-            cell.tile = tile;
+            if (cell !== null) {
+                tile.container.position.copyFrom(cell.position);
+                tile.container.zIndex = rows - row;
+                cell.attachment = tile;
+            }
         });
     }
 
-    getCellsBatch(cell: Cell, _cells: Set<Cell> = new Set()): Set<Cell> {
-        const { tile } = cell;
-        if (tile === null || _cells.has(cell)) {
-            return _cells;
+    getTilesBatch(
+        tile: TileEntity,
+        _batch: Set<TileEntity> = new Set()
+    ): Set<TileEntity> {
+        if (_batch.has(tile)) {
+            return _batch;
         }
 
-        _cells.add(cell);
+        _batch.add(tile);
 
-        // Skip diagonal neighbors (last 4)
-        for (let ni = 0; ni < 4; ni++) {
-            const mask = cell.neighbors[ni];
-            const neighborCell = this._grid.getCellByMask(mask);
-            const neighborTile = neighborCell.tile;
-
-            if (neighborTile !== null && neighborTile.type === tile.type) {
-                this.getCellsBatch(neighborCell, _cells);
+        for (const neighbor of tile.getNeighbors()) {
+            if (neighbor.family === tile.family) {
+                this.getTilesBatch(neighbor, _batch);
             }
         }
 
-        return _cells;
+        return _batch;
     }
 
-    blowUpTiles(
-        cell: Cell,
-        radius: number,
-        _circle?: Circle,
-        _cells = new Set<Cell>()
-    ): Set<Cell> {
-        const { tile } = cell;
-        if (tile === null || _cells.has(cell)) {
-            return _cells;
-        }
+    // blowUpTiles(
+    //     cell: Cell,
+    //     radius: number,
+    //     _circle?: Circle,
+    //     _cells = new Set<Cell>()
+    // ): Set<Cell> {
+    //     const { tile } = cell;
+    //     if (tile === null || _cells.has(cell)) {
+    //         return _cells;
+    //     }
 
-        const { cellWidth, cellHeight } = this._grid;
+    //     const { cellWidth, cellHeight } = this._grid;
 
-        let circle = _circle;
-        if (circle === undefined) {
-            circle = new Circle(
-                cell.position.x + cellWidth / 2,
-                cell.position.y + cellHeight / 2,
-                radius
-            );
-        }
+    //     let circle = _circle;
+    //     if (circle === undefined) {
+    //         circle = new Circle(
+    //             cell.position.x + cellWidth / 2,
+    //             cell.position.y + cellHeight / 2,
+    //             radius
+    //         );
+    //     }
 
-        if (testCircleBox(circle, cell.box)) {
-            _cells.add(cell);
+    //     if (testCircleBox(circle, cell.box)) {
+    //         _cells.add(cell);
 
-            for (const mask of cell.neighbors) {
-                const neighborCell = this._grid.getCellByMask(mask);
-                this.blowUpTiles(neighborCell, radius, circle, _cells);
-            }
-        }
+    //         for (const mask of cell.neighbors) {
+    //             const neighborCell = this._grid.getCellByMask(mask);
+    //             this.blowUpTiles(neighborCell, radius, circle, _cells);
+    //         }
+    //     }
 
-        return _cells;
-    }
+    //     return _cells;
+    // }
 
-    async playDestroyAnimation(tile: Tile): Promise<void> {
-        return new Promise((resolve) => {
-            const { container } = tile;
-            container.zIndex = 100;
-
-            const tween = new Tween({
-                scale: 1,
-                alpha: 1,
-            })
-                .to({
-                    scale: 0,
-                    alpha: 0,
-                })
-                .easing(Easing.Quartic.In)
-                .delay(Math.random() * 120)
-                .duration(80)
-                .onUpdate(({ scale, alpha }) => {
-                    container.position.x += 2;
-                    container.position.y += 2;
-                    container.scale = scale;
-                    container.alpha = alpha;
-                })
-                .onComplete(() => {
-                    this._tweens.delete(tile);
-                    resolve();
-                })
-                .start();
-
-            this._tweens.set(tile, tween);
-        });
-    }
-
-    destroyTile(tile: Tile) {
-        this._tiles.delete(tile.id);
-        this.playDestroyAnimation(tile).then(() => {
-            this._grid.container.removeChild(tile.container);
-        });
-    }
+    // destroyTile(tile: Tile) {
+    // this._tiles.delete(tile.id);
+    // this.playDestroyAnimation(tile).then(() => {
+    //     this._grid.container.removeChild(tile.container);
+    // });
+    // }
 }
