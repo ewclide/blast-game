@@ -13,6 +13,7 @@ type BoosterConstructor<B extends BaseBooster = BaseBooster> = Newable<B>;
 class BaseBooster {
     completed: boolean = false;
     cooldown: number = 0;
+    onApply = () => {};
 
     constructor(
         protected _grid: Grid,
@@ -106,6 +107,7 @@ export class BoosterCreator {
     apply(cell: Cell) {
         if (this._activeBooster) {
             this._activeBooster.apply(cell);
+            this._activeBooster.onApply();
         }
     }
 

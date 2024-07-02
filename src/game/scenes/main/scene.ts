@@ -1,4 +1,4 @@
-import { Button } from '@pixi/ui';
+import { Button, CheckBox, Switcher } from '@pixi/ui';
 import { BaseScene } from '@blast-game/framework';
 import { BatchDestroyStrategy, DestroySystem } from './destroy-system';
 import { MainState, MainStore } from './store';
@@ -84,19 +84,25 @@ export class MainScene extends BaseScene<MainState> {
         const boosterBomb = this._boosterCreator.register(BombBooster);
         boosterBomb.radius = 110;
 
-        const boosterBombButton = this.ui.layout.getContainer(
-            'booster-bomb'
-        ) as Button;
+        const boosterBombSwitcher = this.ui.layout.getContainer(
+            'booster-bomb-switcher'
+        ).view as CheckBox;
 
-        boosterBombButton.onPress.connect(() => {
+        const resetBoosterSwitcher = () => {
+            boosterBombSwitcher.checked = false;
+        };
+
+        boosterBombSwitcher.onCheck.connect(() => {
             const boosters = this.store.state.boosters;
             if (!boosters) {
+                resetBoosterSwitcher();
                 return;
             }
 
             const active = this._boosterCreator.active(BombBooster);
             if (active) {
                 this.store.setState({ boosters: boosters - 1 });
+                active.onApply = resetBoosterSwitcher;
             }
         });
 

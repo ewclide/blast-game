@@ -33,6 +33,18 @@ const getBoosterButtonLayout = (id: string, title: string): LayoutBlock => ({
         },
         {
             height: '40%',
+            block: {
+                id: id + '-switcher',
+                height: '38px',
+                width: '90px',
+                offsetY: '20px',
+                alignY: 'end',
+                content: {
+                    type: 'switcher',
+                    imageOn: 'switch-on',
+                    imageOff: 'switch-off',
+                },
+            },
         },
     ],
 });
