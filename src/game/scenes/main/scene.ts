@@ -273,6 +273,10 @@ export class MainScene extends BaseScene<MainState> {
         // Skip diagonal neighbors (last 4)
         for (let ni = 0; ni < 4; ni++) {
             const mask = cell.neighbors[ni];
+            if (mask === -1) {
+                continue;
+            }
+
             const neighborCell = this._grid.getCellByMask(mask);
             const neighborTile = neighborCell.tile;
 

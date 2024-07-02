@@ -111,7 +111,7 @@ export class Grid {
                     encodeWithBorderCheck(row - 1, col + 1),
                     encodeWithBorderCheck(row + 1, col - 1),
                     encodeWithBorderCheck(row + 1, col + 1),
-                ].filter((v) => v >= 0);
+                ];
 
                 box.setPositionSize(
                     position.x,
@@ -154,10 +154,6 @@ export class Grid {
                 cell.tile = null;
             }
         }
-    }
-
-    getCol(col: number): Cell[] {
-        return this._cells[col];
     }
 
     getCellByMask(mask: number): Cell {
