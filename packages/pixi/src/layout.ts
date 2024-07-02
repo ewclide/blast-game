@@ -25,11 +25,11 @@ export class LayoutPixi extends Layout<Container> {
     prepare(resouces: ResourcesPixi): void {
         this.regContentCreator<LayoutText>(
             'text',
-            (data) => new Text(data),
-            (rect, container) => {
+            (data) => ({ view: new Text(data) }),
+            (rect, { view }) => {
                 // Note: we must not stretch text, set only position
-                container.x = rect.x;
-                container.y = rect.y;
+                view.x = rect.x;
+                view.y = rect.y;
             }
         );
 
@@ -37,31 +37,33 @@ export class LayoutPixi extends Layout<Container> {
             const graphics = new Graphics();
             graphics.rect(0, 0, 10, 10);
             graphics.fill(data.color);
-            return graphics;
+            return { view: graphics };
         });
 
         this.regContentCreator<LayoutTexture>('texture', (data) => {
             const texture = resouces.get(Texture, data.textureId);
             const graphics = new Graphics();
             graphics.texture(texture);
-            return graphics;
+            return { view: graphics };
         });
 
         this.regContentCreator<LayoutButton>('button', (data) => {
             const texture = resouces.get(Texture, data.textureId);
             const sprite = new Sprite(texture);
             const button = new Button(sprite);
-            return button.view;
+            return button;
         });
 
         this.regContentCreator<LayoutProgress>('progress', (data) => {
             const bg = resouces.get(Texture, data.bg);
             const fill = resouces.get(Texture, data.fill);
-            return new ProgressBar({
+            const progress = new ProgressBar({
                 bg: new Sprite(bg),
                 fill: new Sprite(fill),
                 progress: data.value || 0,
             });
+
+            return { view: progress };
         });
     }
 }

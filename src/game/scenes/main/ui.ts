@@ -8,10 +8,12 @@ export class MainUI extends BaseUI<MainState> {
         await super.init();
 
         const { layout } = this;
-        const steps = layout.getContainer('steps') as Text;
-        const scores = layout.getContainer('scores') as Text;
-        const maxScores = layout.getContainer('max-scores') as Text;
-        const progress = layout.getContainer('progress-bar') as ProgressBar;
+        const steps = layout.getContainer('steps').view as Text;
+        const scores = layout.getContainer('scores').view as Text;
+        const maxScores = layout.getContainer('max-scores').view as Text;
+        const shuffles = layout.getContainer('shuffle-text').view as Text;
+        const progress = layout.getContainer('progress-bar')
+            .view as ProgressBar;
 
         // Sync store with ui
         const { store } = this;
@@ -26,6 +28,10 @@ export class MainUI extends BaseUI<MainState> {
 
         store.subscribe('steps', (value: number) => {
             steps.text = value;
+        });
+
+        store.subscribe('shuffles', (value: number) => {
+            shuffles.text = `перемешать (${value})`;
         });
 
         store.subscribe(

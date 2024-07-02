@@ -4,8 +4,9 @@ import { ResourceManager } from '../resources';
 
 export function layoutDefaultFitStrategy(
     rect: LayoutRect,
-    container: LayoutContainer
+    wrapper: LayoutContainerWrapper
 ) {
+    const container = wrapper.view;
     container.width = rect.width;
     container.height = rect.height;
     container.x = rect.x;
@@ -20,15 +21,21 @@ export interface LayoutContainer {
     addChild(container: LayoutContainer): void;
 }
 
+export interface LayoutContainerWrapper<
+    C extends LayoutContainer = LayoutContainer
+> {
+    view: C;
+}
+
 export type LayoutSectionID = string;
 
 export type LayoutCreateContainer<T extends LayoutContentData = any> = (
     descriptor: T
-) => LayoutContainer;
+) => LayoutContainerWrapper;
 
 export type LayoutFitStrategy = (
     rect: LayoutRect,
-    container: LayoutContainer
+    wrapper: LayoutContainerWrapper
 ) => void;
 
 interface LayoutContainerMethods {
@@ -38,7 +45,7 @@ interface LayoutContainerMethods {
 
 interface FittableContainer<C extends LayoutContainer> {
     sectionID: LayoutSectionID;
-    container: C;
+    wrapper: LayoutContainerWrapper<C>;
     fit: LayoutFitStrategy;
 }
 
@@ -51,8 +58,12 @@ export interface ILayout<C extends LayoutContainer> {
         create: LayoutCreateContainer<T>,
         fit: LayoutFitStrategy
     ): void;
-    getContainer(id: string): C;
-    attach(sectionID: string, container: C, fit: LayoutFitStrategy): void;
+    getContainer(id: string): LayoutContainerWrapper<C>;
+    attach(
+        sectionID: string,
+        wrapper: LayoutContainerWrapper<C>,
+        fit: LayoutFitStrategy
+    ): void;
 }
 
 let containerId = 0;
@@ -98,31 +109,30 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
         this._containerMethods.set(type, { create, fit });
     }
 
-    getContainer(id: string): C {
+    getContainer(id: string): LayoutContainerWrapper<C> {
         const fittable = this._fittables.get(id);
         if (fittable === undefined) {
             throw new Error(`Unknown layout id ${id}`);
         }
-        return fittable.container;
+        return fittable.wrapper;
     }
 
     attach(
         sectionID: string,
-        container: C,
+        wrapper: LayoutContainerWrapper<C>,
         fit: LayoutFitStrategy = layoutDefaultFitStrategy
     ) {
         if (this._fittables.has(sectionID)) {
             throw new Error();
         }
 
-        const fittable = { sectionID, container, fit };
+        const fittable = { sectionID, wrapper, fit };
         this._fittables.set(sectionID, fittable);
-        this._rootContainer.addChild(container);
+        this._rootContainer.addChild(wrapper.view);
         this._applyFittable(fittable);
     }
 
     update() {
-        console.log('update layout');
         this._parser.calc(this._canvas, this._section, this._rects);
 
         for (const fittable of this._fittables.values()) {
@@ -136,7 +146,7 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
             return;
         }
 
-        fittable.fit(rect, fittable.container);
+        fittable.fit(rect, fittable.wrapper);
     }
 
     private _createContainers = (section: LayoutSection) => {
@@ -151,8 +161,12 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
             const id = section.id || `__${content.type}:${containerId++}`;
             section.id = id;
 
-            const container = methods.create(content) as C;
-            this.attach(id, container, methods.fit);
+            const container = methods.create(content);
+            this.attach(
+                id,
+                container as LayoutContainerWrapper<C>,
+                methods.fit
+            );
         }
 
         if (block) {

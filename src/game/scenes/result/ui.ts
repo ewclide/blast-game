@@ -43,8 +43,9 @@ export class ResultUI extends BaseUI<ResultState> {
         await super.init();
 
         const { layout } = this;
-        const message = layout.getContainer('message') as Text;
-        const underMessage = layout.getContainer('under-message') as Graphics;
+        const message = layout.getContainer('message').view as Text;
+        const underMessage = layout.getContainer('under-message')
+            .view as Graphics;
 
         // Sync store with ui
         const { store } = this;
