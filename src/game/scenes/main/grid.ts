@@ -156,7 +156,10 @@ export class Grid {
         }
     }
 
-    getCellByMask(mask: number): Cell {
+    getCellByMask(mask: number): Cell | null {
+        if (mask < 0) {
+            return null;
+        }
         const [row, col] = decodeCoords(mask);
         return this.getCellByRowCol(row, col);
     }

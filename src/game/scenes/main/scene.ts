@@ -20,6 +20,7 @@ export class MainScene extends BaseScene<MainState> {
     private _tiles = new Map<number, Tile>();
     private _tileTypes: TileTypeDescriptor[] = [];
     private _stopClicking: boolean = false;
+    private _activeBoosterBomb: boolean = false;
     private _tweens: Map<Tile, Tween<any>> = new Map();
     private _minBatchSize: number = 2;
     private _tilesToFall = new Set<{
@@ -286,13 +287,12 @@ export class MainScene extends BaseScene<MainState> {
         // Skip diagonal neighbors (last 4)
         for (let ni = 0; ni < 4; ni++) {
             const mask = cell.neighbors[ni];
-            if (mask === -1) {
+            const neighborCell = this._grid.getCellByMask(mask);
+            if (neighborCell === null) {
                 continue;
             }
 
-            const neighborCell = this._grid.getCellByMask(mask);
             const neighborTile = neighborCell.tile;
-
             if (neighborTile !== null && neighborTile.type === tile.type) {
                 this.getCellsBatch(neighborCell, _cells);
             }
@@ -328,7 +328,9 @@ export class MainScene extends BaseScene<MainState> {
 
             for (const mask of cell.neighbors) {
                 const neighborCell = this._grid.getCellByMask(mask);
-                this.blowUpTiles(neighborCell, radius, circle, _cells);
+                if (neighborCell) {
+                    this.blowUpTiles(neighborCell, radius, circle, _cells);
+                }
             }
         }
 
