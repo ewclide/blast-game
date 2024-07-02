@@ -57,7 +57,7 @@ export class MainScene extends BaseScene<MainState> {
 
         this.store.setState({
             scores: 0,
-            steps: 50,
+            steps: 25,
             maxScores: 100,
             shuffles: 5,
             boosters: 5,
