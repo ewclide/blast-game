@@ -4,6 +4,7 @@ import { Context, BaseScene } from '@blast-game/framework';
 import { randi, testCircleBox } from '@blast-game/core';
 import { Circle, Point, Texture } from 'pixi.js';
 import { MainState, MainStore } from './store';
+import { MovementSystem } from './movement-system';
 import { Tile, TileType } from './tile';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';
@@ -23,11 +24,7 @@ export class MainScene extends BaseScene<MainState> {
     private _activeBoosterBomb: boolean = false;
     private _tweens: Map<Tile, Tween<any>> = new Map();
     private _minBatchSize: number = 2;
-    private _tilesToFall = new Set<{
-        tile: Tile;
-        dst: Cell;
-        delay: number;
-    }>();
+    private _movementSystem: MovementSystem;
 
     constructor(name: string, ui: MainUI, store: MainStore) {
         super(name, ui, store);
@@ -43,6 +40,8 @@ export class MainScene extends BaseScene<MainState> {
         });
 
         this._grid.onClick = this.onClickGrid;
+
+        this._movementSystem = new MovementSystem();
     }
 
     async init() {
@@ -106,27 +105,9 @@ export class MainScene extends BaseScene<MainState> {
             tween.update();
         }
 
-        for (const tileData of this._tilesToFall) {
-            const { tile, dst, delay } = tileData;
-            if (delay > 0) {
-                tileData.delay -= dt;
-                continue;
-            }
+        this._movementSystem.update(dt);
 
-            const maxY = dst.position.y;
-            const position = tile.container.position;
-
-            tile.speed += TILE_ACCEL * dt;
-            position.y += tile.speed * dt;
-            if (position.y >= maxY) {
-                dst.tile = tile;
-                position.y = maxY;
-                tile.speed = 0;
-                this._tilesToFall.delete(tileData);
-            }
-        }
-
-        if (!this._tilesToFall.size) {
+        if (!this._movementSystem.tilesToMoveCount) {
             this._stopClicking = false;
         }
     }
@@ -187,11 +168,7 @@ export class MainScene extends BaseScene<MainState> {
                 cell.tile = null;
                 const dst = column[ci + emptyCells];
                 tile.container.zIndex = column.length - dst.row;
-                this._tilesToFall.add({
-                    tile,
-                    dst,
-                    delay: 0.2,
-                });
+                this._movementSystem.addTile(tile, dst);
             }
         }
 
@@ -205,12 +182,7 @@ export class MainScene extends BaseScene<MainState> {
 
             tile.container.position.set(cX, cY);
             tile.container.zIndex = column.length - dst.row;
-
-            this._tilesToFall.add({
-                tile,
-                dst,
-                delay: 0.2,
-            });
+            this._movementSystem.addTile(tile, dst);
         }
     };
 
