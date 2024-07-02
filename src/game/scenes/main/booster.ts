@@ -7,14 +7,12 @@ import { MovementSystem } from './movement-system';
 import { Cell, Grid } from './grid';
 import { MainStore } from './store';
 
-type BoosterConstructor<B extends BaseBooster> = (new (...args: any[]) => B) & {
-    price: number;
-};
+type Newable<T> = new (...args: any[]) => T;
+type BoosterConstructor<B extends BaseBooster = BaseBooster> = Newable<B>;
 
 class BaseBooster {
-    static price = 0;
-
-    public completed: boolean = false;
+    completed: boolean = false;
+    cooldown: number = 0;
 
     constructor(
         protected _grid: Grid,
@@ -22,22 +20,16 @@ class BaseBooster {
         protected _movementSystem: MovementSystem
     ) {}
 
-    setup(props: unknown) {}
-
     apply(cell: Cell) {}
 
     reset() {}
 }
 
 export class BombBooster extends BaseBooster {
-    static readonly price = 5;
+    static readonly price = 15;
 
-    private _radius: number;
+    radius: number = 0;
     private _prevStrategy: DestroyStrategy;
-
-    setup(radius: number): void {
-        this._radius = radius;
-    }
 
     apply(): void {
         if (this.completed) {
@@ -49,7 +41,7 @@ export class BombBooster extends BaseBooster {
 
         this._destroySystem.destroyStrategy = new CircleDestroyStrategy(
             this._grid,
-            this._radius
+            this.radius
         );
 
         this.completed = true;
@@ -60,11 +52,14 @@ export class BombBooster extends BaseBooster {
         if (prevStrategy) {
             this._destroySystem.destroyStrategy = prevStrategy;
         }
+
+        this.completed = false;
     }
 }
 
 export class BoosterCreator {
     private _activeBooster: BaseBooster | null = null;
+    private _boosters: Map<BoosterConstructor, BaseBooster> = new Map();
 
     constructor(
         private _store: MainStore,
@@ -73,20 +68,9 @@ export class BoosterCreator {
         private _movementSystem: MovementSystem
     ) {}
 
-    active<B extends BaseBooster>(
-        BoosterType: BoosterConstructor<B>
-    ): B | null {
-        const scores = this._store.state.scores;
-        if (scores < BoosterType.price) {
-            return null;
-        }
-
-        this._store.setState({
-            scores: scores - BoosterType.price,
-        });
-
-        if (this._activeBooster) {
-            this._activeBooster.reset();
+    register<B extends BaseBooster>(BoosterType: BoosterConstructor<B>): B {
+        if (this._boosters.has(BoosterType)) {
+            throw new Error();
         }
 
         const booster = new BoosterType(
@@ -94,22 +78,49 @@ export class BoosterCreator {
             this._destroySystem,
             this._movementSystem
         );
+        this._boosters.set(BoosterType, booster);
 
-        this._activeBooster = booster;
         return booster;
     }
 
-    apply(cell: Cell) {
-        const activeBooster = this._activeBooster;
-        if (!activeBooster) {
-            return;
+    active<B extends BaseBooster>(
+        BoosterType: BoosterConstructor<B>
+    ): B | null {
+        if (this._activeBooster) {
+            return null;
         }
 
-        if (activeBooster.completed) {
+        const booster = this._boosters.get(BoosterType);
+        if (booster === undefined) {
+            throw new Error();
+        }
+
+        if (booster.cooldown > 0) {
+            return null;
+        }
+
+        this._activeBooster = booster;
+        return booster as B;
+    }
+
+    apply(cell: Cell) {
+        if (this._activeBooster) {
+            this._activeBooster.apply(cell);
+        }
+    }
+
+    afterApply() {
+        const activeBooster = this._activeBooster;
+        if (activeBooster && activeBooster.completed) {
             activeBooster.reset();
             this._activeBooster = null;
-        } else {
-            activeBooster.apply(cell);
+        }
+    }
+
+    update(dt: number) {
+        for (const booster of this._boosters.values()) {
+            booster.cooldown -= dt;
+            booster.cooldown = Math.max(booster.cooldown, 0);
         }
     }
 }

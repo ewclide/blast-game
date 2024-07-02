@@ -5,6 +5,7 @@ export interface MainState {
     steps: number;
     maxScores: number;
     shuffles: number;
+    boosters: number;
 }
 
 export type MainStore = IStore<MainState>;
@@ -16,5 +17,6 @@ export function createMainStore(): MainStore {
         steps: 0,
         maxScores: 0,
         shuffles: 0,
+        boosters: 0,
     });
 }

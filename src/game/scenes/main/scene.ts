@@ -60,6 +60,7 @@ export class MainScene extends BaseScene<MainState> {
             steps: 50,
             maxScores: 100,
             shuffles: 5,
+            boosters: 5,
         });
 
         this.store.subscribe(
@@ -80,13 +81,22 @@ export class MainScene extends BaseScene<MainState> {
             }
         });
 
-        const boosterBomb = this.ui.layout.getContainer(
+        const boosterBomb = this._boosterCreator.register(BombBooster);
+        boosterBomb.radius = 110;
+
+        const boosterBombButton = this.ui.layout.getContainer(
             'booster-bomb'
         ) as Button;
-        boosterBomb.onPress.connect(() => {
-            const booster = this._boosterCreator.active(BombBooster);
-            if (booster) {
-                booster.setup(110);
+
+        boosterBombButton.onPress.connect(() => {
+            const boosters = this.store.state.boosters;
+            if (!boosters) {
+                return;
+            }
+
+            const active = this._boosterCreator.active(BombBooster);
+            if (active) {
+                this.store.setState({ boosters: boosters - 1 });
             }
         });
 
@@ -104,6 +114,7 @@ export class MainScene extends BaseScene<MainState> {
 
         this._destroySystem.update(dt);
         this._movementSystem.update(dt);
+        this._boosterCreator.update(dt);
 
         if (!this._movementSystem.tilesToMoveCount) {
             this._stopClicking = false;
@@ -142,5 +153,7 @@ export class MainScene extends BaseScene<MainState> {
                 this._movementSystem.addTile(tile, cell);
             }
         });
+
+        this._boosterCreator.afterApply();
     };
 }
