@@ -131,18 +131,13 @@ export class MainScene extends BaseScene<MainState> {
         }
 
         // Destroy the batch of tiles
-        // const cells = this.getCellsBatch(cell);
-        const cells = this.blowUpTiles(cell, 100);
+        const cells = this.getCellsBatch(cell);
         if (cells.size >= this._minBatchSize) {
             this._stopClicking = true;
             this.destroyTiles(cells);
         }
 
-        for (let col = 0; col < this._grid.cols; col++) {
-            const column = this._grid.getCol(col);
-            const emptyCells = this.addTilesToFall(column);
-            this.generateTilesOnTop(emptyCells, col, column);
-        }
+        this._grid.forEachColumn(this.generateTopTiles);
     };
 
     destroyTiles(cells: Iterable<Cell>) {
@@ -159,7 +154,7 @@ export class MainScene extends BaseScene<MainState> {
         this.onDestroyTiles(tiles);
     }
 
-    addTilesToFall(column: Cell[]): number {
+    generateTopTiles = (column: Cell[], col: number) => {
         // TODO: split by
         // getEmptyCells => Cell[]
         // addTilesToFall()
@@ -186,10 +181,6 @@ export class MainScene extends BaseScene<MainState> {
             }
         }
 
-        return emptyCells;
-    }
-
-    generateTilesOnTop(emptyCells: number, col: number, column: Cell[]) {
         const { cellWidth, cellHeight } = this._grid;
 
         for (let ci = 0; ci < emptyCells; ci++) {
@@ -207,7 +198,7 @@ export class MainScene extends BaseScene<MainState> {
                 delay: 0.2,
             });
         }
-    }
+    };
 
     fillGrid() {
         const { rows } = this._grid;
