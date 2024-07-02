@@ -5,6 +5,8 @@ export const assets: ResourcesPixiConfig = {
         marvin: 'fonts/marvin.woff2',
     },
     textures: {
+        'switch-on': 'images/switch-on.png',
+        'switch-off': 'images/switch-off.png',
         'tile-blue': 'images/tile-blue.png',
         'tile-red': 'images/tile-red.png',
         'tile-pink': 'images/tile-pink.png',
