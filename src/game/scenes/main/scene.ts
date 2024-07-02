@@ -1,3 +1,4 @@
+import { Button } from '@pixi/ui';
 import { Easing, Tween } from '@tweenjs/tween.js';
 import { Context, BaseScene } from '@blast-game/framework';
 import { randi, testCircleBox } from '@blast-game/core';
@@ -67,12 +68,15 @@ export class MainScene extends BaseScene<MainState> {
 
         this.fillGrid();
 
-        this.ui.layout.attach('grid', this._grid.container);
+        this.ui.layout.attach('grid', {
+            view: this._grid.container,
+        });
 
         this.store.setState({
             scores: 0,
             steps: 50,
             maxScores: 100,
+            shuffles: 5,
         });
 
         this.store.subscribe(
@@ -83,6 +87,15 @@ export class MainScene extends BaseScene<MainState> {
             },
             { firstStart: false }
         );
+
+        const shuffleButton = this.ui.layout.getContainer('shuffle') as Button;
+        shuffleButton.onPress.connect(() => {
+            const shuffles = this.store.state.shuffles;
+            if (shuffles > 0) {
+                this.store.setState({ shuffles: shuffles - 1 });
+                this.shuffle();
+            }
+        });
     }
 
     updateSceneCycle(): void {

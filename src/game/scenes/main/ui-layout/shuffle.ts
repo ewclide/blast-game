@@ -16,6 +16,7 @@ const shuffleButton: LayoutText = {
 };
 
 export const shuffleBlock: LayoutBlock = {
+    id: 'shuffle',
     alignY: 'start',
     offsetY: '25px',
     width: '200px',
@@ -25,6 +26,7 @@ export const shuffleBlock: LayoutBlock = {
         textureId: 'pink-button',
     },
     block: {
+        id: 'shuffle-text',
         width: '0px',
         height: '0px',
         content: shuffleButton,

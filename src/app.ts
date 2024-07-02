@@ -13,12 +13,10 @@ export class App {
 
     async init() {
         await this._context.init();
-        console.log('before game.init');
 
         const game = new Game(assets);
         this._game = game;
 
         await this._game.init();
-        console.log('after game init');
     }
 }
