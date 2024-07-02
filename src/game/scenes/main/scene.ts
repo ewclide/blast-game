@@ -1,11 +1,11 @@
+import { randi } from '@blast-game/core';
 import { Button } from '@pixi/ui';
-import { Easing, Tween } from '@tweenjs/tween.js';
 import { Context, BaseScene } from '@blast-game/framework';
-import { randi, testCircleBox } from '@blast-game/core';
-import { Circle, Point, Texture } from 'pixi.js';
+import { Point, Texture } from 'pixi.js';
 import { MainState, MainStore } from './store';
 import { MovementSystem } from './movement-system';
 import { Tile, TileType } from './tile';
+import { DestroySystem } from './destroy-system';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';
 
@@ -14,17 +14,14 @@ export interface TileTypeDescriptor {
     texture: Texture;
 }
 
-const TILE_ACCEL = 3000;
-
 export class MainScene extends BaseScene<MainState> {
     private _grid!: Grid;
     private _tiles = new Map<number, Tile>();
     private _tileTypes: TileTypeDescriptor[] = [];
     private _stopClicking: boolean = false;
     private _activeBoosterBomb: boolean = false;
-    private _tweens: Map<Tile, Tween<any>> = new Map();
-    private _minBatchSize: number = 2;
     private _movementSystem: MovementSystem;
+    private _destroySystem: DestroySystem;
 
     constructor(name: string, ui: MainUI, store: MainStore) {
         super(name, ui, store);
@@ -39,9 +36,8 @@ export class MainScene extends BaseScene<MainState> {
             topPadding: 7,
         });
 
-        this._grid.onClick = this.onClickGrid;
-
         this._movementSystem = new MovementSystem();
+        this._destroySystem = new DestroySystem(this._grid);
     }
 
     async init() {
@@ -67,6 +63,8 @@ export class MainScene extends BaseScene<MainState> {
         this._tileTypes = tiles;
 
         this.fillGrid();
+
+        this._grid.onClick = this.onClickGrid;
 
         this.ui.layout.attach('grid', {
             view: this._grid.container,
@@ -96,15 +94,20 @@ export class MainScene extends BaseScene<MainState> {
                 this.shuffle();
             }
         });
+
+        this._destroySystem.onDestroyTiles = () => {
+            const { scores, steps } = this.store.state;
+            this.store.setState({
+                scores: scores + tiles.length,
+                steps: steps - 1,
+            });
+        };
     }
 
     updateSceneCycle(): void {
         const dt = this.time.delta;
 
-        for (const tween of this._tweens.values()) {
-            tween.update();
-        }
-
+        this._destroySystem.update(dt);
         this._movementSystem.update(dt);
 
         if (!this._movementSystem.tilesToMoveCount) {
@@ -112,42 +115,22 @@ export class MainScene extends BaseScene<MainState> {
         }
     }
 
-    onDestroyTiles(tiles: Tile[]) {
-        const { scores, steps } = this.store.state;
-        this.store.setState({
-            scores: scores + tiles.length,
-            steps: steps - 1,
-        });
-    }
-
     onClickGrid = (cell: Cell) => {
         if (this._stopClicking) {
             return;
         }
 
-        // Destroy the batch of tiles
-        const cells = this.getCellsBatch(cell);
-        if (cells.size >= this._minBatchSize) {
+        const destroyedTiles = this._destroySystem.destroy(cell);
+        if (destroyedTiles.length) {
             this._stopClicking = true;
-            this.destroyTiles(cells);
+        }
+
+        for (const tile of destroyedTiles) {
+            this._tiles.delete(tile.id);
         }
 
         this._grid.forEachColumn(this.generateTopTiles);
     };
-
-    destroyTiles(cells: Iterable<Cell>) {
-        const tiles: Tile[] = [];
-        for (const cell of cells) {
-            const { tile } = cell;
-            if (tile !== null) {
-                this.destroyTile(tile);
-                tiles.push(tile);
-            }
-            cell.tile = null;
-        }
-
-        this.onDestroyTiles(tiles);
-    }
 
     generateTopTiles = (column: Cell[], col: number) => {
         // TODO: split by
@@ -245,106 +228,6 @@ export class MainScene extends BaseScene<MainState> {
             tile.container.position.copyFrom(cell.position);
             tile.container.zIndex = rows - row;
             cell.tile = tile;
-        });
-    }
-
-    getCellsBatch(cell: Cell, _cells: Set<Cell> = new Set()): Set<Cell> {
-        const { tile } = cell;
-        if (tile === null || _cells.has(cell)) {
-            return _cells;
-        }
-
-        _cells.add(cell);
-
-        // Skip diagonal neighbors (last 4)
-        for (let ni = 0; ni < 4; ni++) {
-            const mask = cell.neighbors[ni];
-            const neighborCell = this._grid.getCellByMask(mask);
-            if (neighborCell === null) {
-                continue;
-            }
-
-            const neighborTile = neighborCell.tile;
-            if (neighborTile !== null && neighborTile.type === tile.type) {
-                this.getCellsBatch(neighborCell, _cells);
-            }
-        }
-
-        return _cells;
-    }
-
-    blowUpTiles(
-        cell: Cell,
-        radius: number,
-        _circle?: Circle,
-        _cells = new Set<Cell>()
-    ): Set<Cell> {
-        const { tile } = cell;
-        if (tile === null || _cells.has(cell)) {
-            return _cells;
-        }
-
-        const { cellWidth, cellHeight } = this._grid;
-
-        let circle = _circle;
-        if (circle === undefined) {
-            circle = new Circle(
-                cell.position.x + cellWidth / 2,
-                cell.position.y + cellHeight / 2,
-                radius
-            );
-        }
-
-        if (testCircleBox(circle, cell.box)) {
-            _cells.add(cell);
-
-            for (const mask of cell.neighbors) {
-                const neighborCell = this._grid.getCellByMask(mask);
-                if (neighborCell) {
-                    this.blowUpTiles(neighborCell, radius, circle, _cells);
-                }
-            }
-        }
-
-        return _cells;
-    }
-
-    async playDestroyAnimation(tile: Tile): Promise<void> {
-        return new Promise((resolve) => {
-            const { container } = tile;
-            container.zIndex = 100;
-
-            const tween = new Tween({
-                scale: 1,
-                alpha: 1,
-            })
-                .to({
-                    scale: 0,
-                    alpha: 0,
-                })
-                .easing(Easing.Quartic.In)
-                .delay(Math.random() * 120)
-                .duration(80)
-                .onUpdate(({ scale, alpha }) => {
-                    container.position.x += 2;
-                    container.position.y += 2;
-                    container.scale = scale;
-                    container.alpha = alpha;
-                })
-                .onComplete(() => {
-                    this._tweens.delete(tile);
-                    resolve();
-                })
-                .start();
-
-            this._tweens.set(tile, tween);
-        });
-    }
-
-    destroyTile(tile: Tile) {
-        this._tiles.delete(tile.id);
-        this.playDestroyAnimation(tile).then(() => {
-            this._grid.container.removeChild(tile.container);
         });
     }
 }
