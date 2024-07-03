@@ -1,6 +1,5 @@
 import { LayoutContentData, LayoutSection } from './layout-description';
 import { ILayoutParser, LayoutRect } from './layout-parser';
-import { ResourceManager } from '../resources';
 
 export function layoutDefaultFitStrategy(
     rect: LayoutRect,
@@ -50,7 +49,6 @@ interface FittableContainer<C extends LayoutContainer> {
 }
 
 export interface ILayout<C extends LayoutContainer> {
-    prepare(resources: ResourceManager): void;
     init(): void;
     update(): void;
     regContentCreator<T extends LayoutContentData>(
@@ -86,10 +84,6 @@ export class Layout<C extends LayoutContainer> implements ILayout<C> {
         this._section = section;
         this._parser = parser;
         this._rootContainer = container;
-    }
-
-    prepare(resources: ResourceManager) {
-        // Implement
     }
 
     init() {
