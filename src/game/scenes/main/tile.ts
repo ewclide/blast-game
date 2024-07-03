@@ -1,9 +1,9 @@
 import { Container, Point, Sprite, Texture } from 'pixi.js';
 
-export type TileType = number | string;
+export type TileFamily = string;
 
 export interface TileOptions {
-    type: TileType;
+    family: TileFamily;
     width: number;
     height: number;
     position: Point;
@@ -15,7 +15,7 @@ export interface TileOptions {
 let tileID = 0;
 export class Tile {
     readonly id = tileID++;
-    readonly type: TileType;
+    readonly family: TileFamily;
     readonly sprite: Sprite;
     readonly container: Container;
     readonly topPadding: number;
@@ -23,7 +23,7 @@ export class Tile {
     speed: number = 0;
 
     constructor(options: TileOptions) {
-        const { width, height, position, type, texture, zIndex, scores } =
+        const { width, height, position, family, texture, zIndex, scores } =
             options;
 
         const sizeFactor = texture.height / texture.width;
@@ -40,7 +40,7 @@ export class Tile {
 
         container.addChild(sprite);
 
-        this.type = type;
+        this.family = family;
         this.sprite = sprite;
         this.container = container;
         this.topPadding = topPadding;
