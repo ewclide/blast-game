@@ -7,6 +7,7 @@ const indexPath = path.resolve(__dirname, './index.html');
 const compressFilter = /.(js|mjs|json|css|bin|html|png|jpg)$/i;
 
 export default defineConfig({
+    base: './',
     plugins: [
         pluginCompression({
             filter: compressFilter,
