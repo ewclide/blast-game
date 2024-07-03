@@ -8,16 +8,19 @@ const resourceTypes: ResourceTypes = {
 };
 
 let globalContext: Context | null;
+export type GameConfig = Record<string, unknown>;
 
-export class Context {
+export class Context<C extends GameConfig = GameConfig> {
     readonly pixi: Application;
     readonly container: HTMLElement;
     readonly resources: ResourcesPixi = new ResourcesPixi();
+    readonly config: C;
 
-    constructor(container: HTMLElement) {
+    constructor(container: HTMLElement, config: C) {
         this.pixi = new Application();
         this.container = container;
         this.resources.register(resourceTypes);
+        this.config = config;
         this.bind();
     }
 
@@ -36,10 +39,10 @@ export class Context {
         globalContext = this;
     }
 
-    static get(): Context {
+    static get<C extends GameConfig = GameConfig>(): Context<C> {
         if (globalContext === null) {
             throw new Error();
         }
-        return globalContext;
+        return globalContext as Context<C>;
     }
 }
