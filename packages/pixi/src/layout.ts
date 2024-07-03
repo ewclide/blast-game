@@ -31,7 +31,11 @@ export class LayoutPixi extends Layout<Container> {
     prepare(resouces: ResourcesPixi): void {
         this.regContentCreator<LayoutText>(
             'text',
-            (data) => ({ view: new Text(data) }),
+            (data) => {
+                const text = new Text(data);
+                text.eventMode = 'none';
+                return { view: text };
+            },
             (rect, { view }) => {
                 // Note: we must not stretch text, set only position
                 view.x = rect.x;
