@@ -1,13 +1,14 @@
 import { Context, IGame } from '@blast-game/framework';
+import { BlasterGameConfig, Game } from './game';
+import { gameConfig } from './config';
 import { assets } from './assets';
-import { Game } from './game';
 
 export class App {
     private _game!: IGame;
-    private _context: Context;
+    private _context: Context<BlasterGameConfig>;
 
     constructor(container: HTMLElement) {
-        this._context = new Context(container);
+        this._context = new Context(container, gameConfig);
         console.log(this);
     }
 

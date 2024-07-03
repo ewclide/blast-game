@@ -1,12 +1,13 @@
 import { randi } from '@blast-game/core';
-import { Context } from '@blast-game/framework';
+import { Tile, TileFamily } from './tile';
 import { Point, Texture } from 'pixi.js';
-import { Tile, TileType } from './tile';
+import { getGameConfig } from '../../config-types';
 import { Cell, Grid } from './grid';
 
 interface TileTypeDescriptor {
-    type: TileType;
+    family: TileFamily;
     texture: Texture;
+    scores: number;
 }
 
 export class TileGenerator {
@@ -19,20 +20,12 @@ export class TileGenerator {
     }
 
     init() {
-        const { resources } = Context.get();
-
-        const tileTypes = {
-            red: 'tile-red',
-            green: 'tile-green',
-            blue: 'tile-blue',
-            pink: 'tile-pink',
-            yellow: 'tile-yellow',
-        };
+        const { resources, config } = getGameConfig();
 
         const tiles: TileTypeDescriptor[] = [];
-        for (const [type, image] of Object.entries(tileTypes)) {
+        for (const { family, image, scores } of config.tileTypes) {
             const texture = resources.get(Texture, image);
-            tiles.push({ type, texture });
+            tiles.push({ family, texture, scores });
         }
 
         this._tileTypes = tiles;
@@ -48,13 +41,13 @@ export class TileGenerator {
         const randomTile = tileTypes[randi(0, tileTypes.length - 1)];
 
         const tile = new Tile({
-            type: randomTile.type,
+            family: randomTile.family,
             position: new Point(),
             width: cellWidth,
             height: cellHeight,
             texture: randomTile.texture,
+            scores: randomTile.scores,
             zIndex: 0,
-            scores: 1,
         });
 
         this._tiles.set(tile.id, tile);

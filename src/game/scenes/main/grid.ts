@@ -25,11 +25,6 @@ export interface Cell {
     neighbors: number[];
 }
 
-export interface TileTypeDescriptor {
-    type: TileType;
-    texture: Texture;
-}
-
 const encodeCoords = (row: number, col: number) => (row << 16) | col;
 const decodeCoords = (mask: number) => [mask >> 16, mask & 0xffff];
 

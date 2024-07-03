@@ -1,10 +1,11 @@
-import { Button, CheckBox, Switcher } from '@pixi/ui';
-import { BaseScene } from '@blast-game/framework';
+import { Button, CheckBox } from '@pixi/ui';
+import { BaseScene, Context } from '@blast-game/framework';
 import { BatchDestroyStrategy, DestroySystem } from './destroy-system';
+import { BombBooster, BoosterCreator } from './booster';
 import { MainState, MainStore } from './store';
 import { MovementSystem } from './movement-system';
-import { BombBooster, BoosterCreator } from './booster';
 import { TileGenerator } from './tile-generator';
+import { getGameConfig } from '../../config-types';
 import { Cell, Grid } from './grid';
 import { MainUI } from './ui';
 
@@ -19,11 +20,14 @@ export class MainScene extends BaseScene<MainState> {
     constructor(name: string, ui: MainUI, store: MainStore) {
         super(name, ui, store);
 
+        const { config } = getGameConfig();
+
         this.container.addChild(this.ui.container);
 
         this._grid = new Grid({
-            cols: 10,
-            rows: 10,
+            cols: config.cols,
+            rows: config.rows,
+            // Note: the values below depends on UI container
             width: 550,
             height: 550,
             topPadding: 7,
@@ -43,12 +47,14 @@ export class MainScene extends BaseScene<MainState> {
     async init() {
         await super.init();
 
+        const { config } = getGameConfig();
+
         this._tileGenerator.init();
         this._tileGenerator.fillGrid();
         this._grid.onClick = this.onClickGrid;
         this._destroySystem.destroyStrategy = new BatchDestroyStrategy(
             this._grid,
-            2
+            config.minBatchSize
         );
 
         this.ui.layout.attach('grid', {
@@ -57,10 +63,10 @@ export class MainScene extends BaseScene<MainState> {
 
         this.store.setState({
             scores: 0,
-            steps: 25,
-            maxScores: 100,
-            shuffles: 5,
-            boosters: 5,
+            steps: config.steps,
+            maxScores: config.maxScores,
+            shuffles: config.shuffles,
+            boosters: config.bombBoosters,
         });
 
         this.store.subscribe(
@@ -82,7 +88,7 @@ export class MainScene extends BaseScene<MainState> {
         });
 
         const boosterBomb = this._boosterCreator.register(BombBooster);
-        boosterBomb.radius = 110;
+        boosterBomb.radius = config.circleDamageRadius;
 
         const boosterBombSwitcher = this.ui.layout.getContainer(
             'booster-bomb-switcher'

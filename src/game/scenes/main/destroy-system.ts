@@ -39,7 +39,7 @@ export class BatchDestroyStrategy implements DestroyStrategy {
             }
 
             const neighborTile = neighborCell.tile;
-            if (neighborTile !== null && neighborTile.type === tile.type) {
+            if (neighborTile !== null && neighborTile.family === tile.family) {
                 this._getBatch(neighborCell, _cells);
             }
         }
