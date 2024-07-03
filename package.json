@@ -7,14 +7,18 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "prepublish": "http-server ./dist -p 3000 -o",
     "bootstrap": "lerna bootstrap --force-local"
   },
   "devDependencies": {
     "@pixi/ui": "^2.1.2",
     "@tweenjs/tween.js": "^23.1.2",
+    "@types/node": "^20.14.9",
+    "http-server": "^14.1.1",
     "lerna": "^5.5.1",
     "pixi.js": "^8.2.1",
     "typescript": "^5.2.2",
-    "vite": "^5.3.1"
+    "vite": "^5.3.1",
+    "vite-plugin-compression": "^0.5.1"
   }
 }
